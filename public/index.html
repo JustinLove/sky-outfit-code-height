@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Sky Outfit Code Height</title>
+  <link href="style.css" rel="stylesheet" />
+  <script type="text/javascript" src="sky-outfit-code-height.js"></script>
+  <script type="text/javascript" src="lz4-decompress-block.js"></script>
+</head>
+
+<body>
+</body>
+
+<script type="text/javascript">
+var app = Elm.SkyOutfitCodeHeight.init()
+
+// ------------------- Lz4 --------------------
+if (app.ports.lz4DecompressBlock) {
+  app.ports.lz4DecompressBlock.subscribe(function(base64text) {
+    try {
+      var buffer = Uint8Array.fromBase64(base64text)
+      var output = new Array(2000)
+      var decodedCount = lz4.decompressBlock(buffer, output, 0, buffer.length, 0)
+      var trunc = output.slice(0,decodedCount)
+      var decodedText = new TextDecoder().decode(Uint8Array.from(trunc))
+      app.ports.lz4BlockDecompressed.send(decodedText)
+    } catch (e) {
+      app.ports.lz4Error.send(e)
+    }
+  })
+}
+
+</script>
+<!--script defer src="svgxuse.js"></script-->
+
+</html>
+
