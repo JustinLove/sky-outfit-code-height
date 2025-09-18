@@ -1,4 +1,4 @@
-module View exposing (Msg(..), view, document)
+module View exposing (Msg(..), OutfitHeight, view, document)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -11,6 +11,11 @@ type Msg
   = None
   | CodeText String
   | Decode
+
+type alias OutfitHeight =
+  { height : Float
+  , scale : Float
+  }
 
 --document : (Msg -> msg) -> model -> Browser.Document msg
 document tagger model =
@@ -71,6 +76,35 @@ outputArea model =
             [ text output ]
         Nothing ->
           none
+    , case model.outfitHeight of
+        Just outfitHeight ->
+          heightArea outfitHeight
+        Nothing ->
+          none
+    ]
+
+heightArea : OutfitHeight -> Element msg
+heightArea outfitHeight =
+  column
+    [ width fill
+    , padding 10
+    , spacing 10
+    ]
+    [ valueRow "Height" outfitHeight.height
+    , valueRow "Scale" outfitHeight.scale
+    ]
+
+valueRow : String -> Float -> Element msg
+valueRow label value =
+  row
+    [ width fill
+    , spacing 10
+    ]
+    [ el [ width fill ]
+      (el [ alignRight ] (text label))
+     
+    , el [ width fill ]
+      (el [ alignLeft ] (text (value |> String.fromFloat)))
     ]
 
 foreground = rgb 0.9 0.9 0.9

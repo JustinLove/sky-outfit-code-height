@@ -1,20 +1,21 @@
 module SkyOutfitCodeHeight exposing (..)
 
 import Lz4
-import View
+import View exposing (OutfitHeight)
 
 import Browser
-import Json.Decode
+import Json.Decode as Decode
 
 type Msg
   = UI View.Msg
   | BlockDecompressed String
-  | DecompressError (Result Json.Decode.Error String)
+  | DecompressError (Result Decode.Error String)
 
 type alias Model =
   { codeEntry : String
   , urlText : Maybe String
   , output : Maybe String
+  , outfitHeight : Maybe OutfitHeight
   }
 
 main = Browser.document
@@ -29,11 +30,13 @@ sampleCode = "https://sky.thatg.co/o=8RZ7ImJvZHkiOnsiaWQiOjE5OTYzODIwMjYsInRleCI
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( { codeEntry = "" --sampleCode
+  ( { codeEntry = ""-- sampleCode
     , urlText = Nothing
     , output = Nothing
+    , outfitHeight = Nothing
     }
   , Cmd.none
+  --, Lz4.decompressBlock (sampleCode |> removeUrl)
   )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -51,6 +54,7 @@ update msg model =
     BlockDecompressed text ->
       ( { model
         | output = Just text
+        , outfitHeight = decodeHeight text
         }
       , Cmd.none
       )
@@ -66,6 +70,17 @@ update msg model =
 removeUrl : String -> String
 removeUrl urlText =
   String.replace "https://sky.thatg.co/o=" "" urlText
+
+decodeHeight : String -> Maybe OutfitHeight
+decodeHeight string =
+  Decode.decodeString heightDecoder string
+    |> Result.toMaybe
+
+heightDecoder : Decode.Decoder OutfitHeight
+heightDecoder =
+  Decode.map2 OutfitHeight
+    (Decode.field "height" Decode.float)
+    (Decode.field "scale" Decode.float)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
