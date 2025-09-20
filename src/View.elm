@@ -23,6 +23,7 @@ type alias OutfitHeight =
 type OutputView
  = NoOutput
  | RawOutput
+ | PrettyOutput
  | DecodedValues
 
 --document : (Msg -> msg) -> model -> Browser.Document msg
@@ -80,7 +81,7 @@ intermediateArea model =
     ]
 
 outputArea model =
-  column [ width fill ]
+  column [ width fill, padding 10 ]
     [ case model.outputView of
       NoOutput ->
         none
@@ -91,6 +92,8 @@ outputArea model =
         none
       RawOutput ->
         displayPortData rawOutputArea model.output
+      PrettyOutput ->
+        displayPortData prettyOutputArea model.prettyOutput
       DecodedValues ->
         displayPortData heightArea model.outfitHeight
     ]
@@ -142,6 +145,8 @@ outputAreaButtons model =
       ]
       [ tabHeader "ico" "Height" SelectOutputView DecodedValues model.outputView
         |> displayPortAccessory model.outfitHeight
+      , tabHeader "ico" "JSON" SelectOutputView PrettyOutput model.outputView
+        |> displayPortAccessory model.prettyOutput
       , tabHeader "ico" "Raw" SelectOutputView RawOutput model.outputView
         |> displayPortAccessory model.output
       ]
@@ -152,6 +157,15 @@ rawOutputArea output =
     [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
     ]
     [ text output ]
+
+prettyOutputArea : String -> Element msg
+prettyOutputArea output =
+  el
+    [ height (px 300)
+    , width fill
+    , scrollbarY
+    ]
+      <| text output
 
 heightArea : OutfitHeight -> Element msg
 heightArea outfitHeight =

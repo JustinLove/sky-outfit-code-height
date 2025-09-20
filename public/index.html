@@ -32,6 +32,18 @@ if (app.ports.lz4DecompressBlock) {
   })
 }
 
+// ------------------- FormatJson --------------------
+if (app.ports.formatJson) {
+  app.ports.formatJson.subscribe(function(uglyString) {
+    try {
+      var prettyString = JSON.stringify(JSON.parse(uglyString), null, 2)
+      app.ports.formattedJson.send(prettyString)
+    } catch (e) {
+      app.ports.formatJsonError.send(e)
+    }
+  })
+}
+
 </script>
 <!--script defer src="svgxuse.js"></script-->
 
