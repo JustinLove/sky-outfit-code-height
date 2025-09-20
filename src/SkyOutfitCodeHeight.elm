@@ -26,20 +26,15 @@ main = Browser.document
   , view = View.document UI
   }
 
-
-sampleCode = "https://sky.thatg.co/o=8RZ7ImJvZHkiOnsiaWQiOjE5OTYzODIwMjYsInRleCI6MCwicGF0CABBbWFzawkAwGR5ZSI6Iihub25lLAUAlCkifSwid2luZ0YAnzI2Njg5ODM0MUUAHUVoYWlyRQCfOTIyODcwODA0RgAdAh4AA0YAjzU5MjUwMTQz0QAeNW5lY0YAnzM4MDA4ODQ2OdIAHkVmZWV0XQGfNTMyMDkzOTkwGAEeNW9ybowAnzY4MDQ5OTIyOYwAHjVhY2VGAJ81OTk5ODY4ODVGAB1FcHJvcEYAjzQxOTI3NDI40gAfFWEXAZ80MTc3OTQzNTajAR7wG2hlaWdodCI6MS40ODgyNTM4LCJzY2FsZSI6LTAuMDM1ODE0NTUsInZvafkAsTEsImF0dGl0dWRlUwAxc2VlIQLwCDIwMiwicmVmcmVzaHZlcnNpb24iOjB9"
-
-init : () -> (Model, Cmd Msg)
-init _ =
-  ( { codeEntry = "" --sampleCode
-    , urlText = Nothing
-    , output = Nothing
-    , outfitHeight = Nothing
-    , outputView = View.NoOutput
-    }
-  , Cmd.none
-  --, Lz4.decompressBlock (sampleCode |> removeUrl)
-  )
+init : String -> (Model, Cmd Msg)
+init search =
+  { codeEntry = search
+  , urlText = Nothing
+  , output = Nothing
+  , outfitHeight = Nothing
+  , outputView = View.NoOutput
+  }
+    |> update (UI View.Decode)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -51,7 +46,10 @@ update msg model =
       ( { model
         | urlText = Just model.codeEntry
         }
-      , Lz4.decompressBlock (model.codeEntry |> removeUrl)
+      , if String.isEmpty model.codeEntry then
+          Cmd.none
+        else
+          Lz4.decompressBlock (model.codeEntry |> removeUrl)
       )
     UI (View.SelectOutputView view) ->
       ( { model | outputView = view }, Cmd.none)
@@ -77,7 +75,9 @@ update msg model =
 
 removeUrl : String -> String
 removeUrl urlText =
-  String.replace "https://sky.thatg.co/o=" "" urlText
+  urlText
+    |> String.replace "https://sky.thatg.co/o=" ""
+    |> String.replace "?o=" ""
 
 decodeHeight : String -> Maybe OutfitHeight
 decodeHeight string =

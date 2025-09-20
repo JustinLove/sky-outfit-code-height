@@ -13,7 +13,8 @@
 </body>
 
 <script type="text/javascript">
-var app = Elm.SkyOutfitCodeHeight.init()
+var search = window.location.search;
+var app = Elm.SkyOutfitCodeHeight.init({flags: search})
 
 // ------------------- Lz4 --------------------
 if (app.ports.lz4DecompressBlock) {
