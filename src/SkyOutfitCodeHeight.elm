@@ -16,6 +16,7 @@ type alias Model =
   , urlText : Maybe String
   , output : Maybe String
   , outfitHeight : Maybe OutfitHeight
+  , outputView : View.OutputView
   }
 
 main = Browser.document
@@ -30,10 +31,11 @@ sampleCode = "https://sky.thatg.co/o=8RZ7ImJvZHkiOnsiaWQiOjE5OTYzODIwMjYsInRleCI
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( { codeEntry = ""-- sampleCode
+  ( { codeEntry = "" --sampleCode
     , urlText = Nothing
     , output = Nothing
     , outfitHeight = Nothing
+    , outputView = View.NoOutput
     }
   , Cmd.none
   --, Lz4.decompressBlock (sampleCode |> removeUrl)
@@ -51,10 +53,16 @@ update msg model =
         }
       , Lz4.decompressBlock (model.codeEntry |> removeUrl)
       )
+    UI (View.SelectOutputView view) ->
+      ( { model | outputView = view }, Cmd.none)
     BlockDecompressed text ->
+      let moutfitHeight = decodeHeight text in
       ( { model
         | output = Just text
-        , outfitHeight = decodeHeight text
+        , outfitHeight = moutfitHeight
+        , outputView = case moutfitHeight of
+          Just outfitHeight -> View.DecodedValues
+          Nothing -> View.RawOutput
         }
       , Cmd.none
       )
