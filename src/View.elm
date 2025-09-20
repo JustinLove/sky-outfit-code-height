@@ -1,5 +1,7 @@
 module View exposing (Msg(..), OutfitHeight, OutputView(..), view, document)
 
+import PortData exposing (PortData(..))
+
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -88,14 +90,46 @@ outputArea model =
       NoOutput ->
         none
       RawOutput ->
-        case model.output of
-          Just output -> rawOutputArea output
-          Nothing -> none
+        displayPortData rawOutputArea model.output
       DecodedValues ->
-        case model.outfitHeight of
-          Just outfitHeight -> heightArea outfitHeight
-          Nothing -> none
+        displayPortData heightArea model.outfitHeight
     ]
+
+displayPortData : (a -> Element msg) -> PortData a -> Element msg
+displayPortData withData portData =
+  case portData of
+    NotRequested ->
+      text "Not Requested"
+    NotAvailable ->
+      text "Not Available"
+    Loading ->
+      text "loading"
+    Data data ->
+      withData data
+    Failed error ->
+      showError error
+
+
+showError : String -> Element msg
+showError body =
+  paragraph
+    [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
+    ]
+    [ text body ]
+
+displayPortAccessory : PortData a -> Element msg -> Element msg
+displayPortAccessory portData accessory =
+  case portData of
+    NotRequested ->
+      none
+    NotAvailable ->
+      none
+    Loading ->
+      none
+    Data data ->
+      accessory
+    Failed error ->
+      accessory
 
 outputAreaButtons model =
   el
@@ -107,7 +141,9 @@ outputAreaButtons model =
       , centerX
       ]
       [ tabHeader "ico" "Height" SelectOutputView DecodedValues model.outputView
+        |> displayPortAccessory model.outfitHeight
       , tabHeader "ico" "Raw" SelectOutputView RawOutput model.outputView
+        |> displayPortAccessory model.output
       ]
 
 rawOutputArea : String -> Element msg

@@ -1,6 +1,7 @@
 module SkyOutfitCodeHeight exposing (..)
 
 import Lz4
+import PortData exposing (PortData(..))
 import View exposing (OutfitHeight)
 
 import Browser
@@ -14,8 +15,8 @@ type Msg
 type alias Model =
   { codeEntry : String
   , urlText : Maybe String
-  , output : Maybe String
-  , outfitHeight : Maybe OutfitHeight
+  , output : PortData String
+  , outfitHeight : PortData OutfitHeight
   , outputView : View.OutputView
   }
 
@@ -30,8 +31,8 @@ init : String -> (Model, Cmd Msg)
 init search =
   { codeEntry = search
   , urlText = Nothing
-  , output = Nothing
-  , outfitHeight = Nothing
+  , output = NotRequested
+  , outfitHeight = NotRequested
   , outputView = View.NoOutput
   }
     |> update (UI View.Decode)
@@ -54,24 +55,36 @@ update msg model =
     UI (View.SelectOutputView view) ->
       ( { model | outputView = view }, Cmd.none)
     BlockDecompressed text ->
-      let moutfitHeight = decodeHeight text in
+      let
+        output = Data text
+        outfitHeight = output |> PortData.jsonDecode heightDecoder
+      in
       ( { model
-        | output = Just text
-        , outfitHeight = moutfitHeight
-        , outputView = case moutfitHeight of
-          Just outfitHeight -> View.DecodedValues
+        | output = Data text
+        , outfitHeight = outfitHeight
+        , outputView = case outfitHeight |> PortData.toMaybe of
+          Just _ -> View.DecodedValues
           Nothing -> View.RawOutput
         }
       , Cmd.none
       )
     DecompressError (Ok message)->
-      let _ = Debug.log "error" message in
-      (model, Cmd.none)
-      --({model | layoutStatus = LayoutError "There was an error laying out the graph."}, Cmd.none)
+      ( { model
+        | output = Failed message
+        , outfitHeight = NotAvailable
+        , outputView = View.RawOutput
+        }
+      , Cmd.none
+      )
     DecompressError (Err err)->
       let _ = Debug.log "error error" err in
-      (model, Cmd.none)
-      --({model | layoutStatus = LayoutError "Error decoding error"}, Cmd.none)
+      ( { model
+        | output = Failed "Error decoding error"
+        , outfitHeight = NotAvailable
+        , outputView = View.RawOutput
+        }
+      , Cmd.none
+      )
 
 removeUrl : String -> String
 removeUrl urlText =
