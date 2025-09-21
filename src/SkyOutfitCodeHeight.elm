@@ -95,11 +95,15 @@ processSteps model =
     (newRaw, rawCmd) = processStep (Data model.codeEntry) model.output processDecode
     (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
     (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
-  in
-    ( { model
+    dataModel =
+      { model
       | output = newRaw
       , prettyOutput = newPretty
       , outfitHeight = newHeight
+      }
+  in
+    ( { dataModel
+      | currentStep = pickCurrentView dataModel
       }
     , Cmd.batch
       [ rawCmd
@@ -119,8 +123,8 @@ processStep previous data onUpdate =
         NotRequested -> onUpdate value
         NotAvailable -> onUpdate value
         Loading -> onUpdate value
-        Data v -> (Data v, Cmd.none)
-        Failed err -> (Failed err, Cmd.none)
+        Data v -> (data, Cmd.none)
+        Failed err -> (data, Cmd.none)
     Failed err -> (NotAvailable, Cmd.none)
 
 processDecode : String -> (PortData String, Cmd msg)
@@ -143,6 +147,26 @@ processHeight text =
   ( PortData.jsonDecode heightDecoder (Data text)
   , Cmd.none
   )
+
+pickCurrentView : Model -> View.StepId
+pickCurrentView model =
+  if isStepComplete model.outfitHeight then
+    View.StepDecoded
+  else if isStepComplete model.prettyOutput then
+    View.StepPretty
+  else if isStepComplete model.output then
+    View.StepRaw
+  else
+    View.StepCodeEntry
+
+isStepComplete : PortData a -> Bool
+isStepComplete data =
+  case data of
+    NotRequested -> False
+    NotAvailable -> False
+    Loading -> False
+    Data _ -> True
+    Failed _ -> True
 
 removeUrl : String -> String
 removeUrl urlText =
