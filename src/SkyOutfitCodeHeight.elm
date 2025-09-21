@@ -17,7 +17,6 @@ type Msg
 
 type alias Model =
   { codeEntry : String
-  , urlText : Maybe String
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
@@ -34,7 +33,6 @@ main = Browser.document
 init : String -> (Model, Cmd Msg)
 init search =
   { codeEntry = search
-  , urlText = Nothing
   , output = NotRequested
   , prettyOutput = NotRequested
   , outfitHeight = NotRequested
@@ -52,70 +50,99 @@ update msg model =
         }
       , Cmd.none)
     UI (View.Decode) ->
-      ( { model
-        | urlText = Just model.codeEntry
-        , output = Loading
-        }
-      , if String.isEmpty model.codeEntry then
-          Cmd.none
-        else
-          Lz4.decompressBlock (model.codeEntry |> removeUrl)
-      )
+      { model
+      | output = Loading
+      }
+        |> processSteps
     UI (View.SelectStep step) ->
       ( { model | currentStep = step }, Cmd.none)
     BlockDecompressed text ->
-      ( { model
-        | output = Data text
-        , prettyOutput = Loading
-        , outfitHeight = Loading
-        , currentStep = View.StepRaw
-        }
-      , FormatJson.format text
-      )
+      { model
+      | output = Data text
+      }
+        |> processSteps
     DecompressError (Ok message)->
-      ( { model
-        | output = Failed message
-        , prettyOutput = NotAvailable
-        , outfitHeight = NotAvailable
-        , currentStep = View.StepRaw
-        }
-      , Cmd.none
-      )
+      { model
+      | output = Failed message
+      }
+        |> processSteps
     DecompressError (Err err)->
       let _ = Debug.log "error error" err in
-      ( { model
-        | output = Failed "Error decoding error"
-        , prettyOutput = NotAvailable
-        , outfitHeight = NotAvailable
-        , currentStep = View.StepRaw
-        }
-      , Cmd.none
-      )
+      { model
+      | output = Failed "Error decoding error"
+      }
+        |> processSteps
     JsonFormatted pretty ->
-      ( { model
-        | prettyOutput = Data pretty
-        , outfitHeight = model.output |> PortData.jsonDecode heightDecoder
-        , currentStep = View.StepDecoded
-        }
-      , Cmd.none
-      )
+      { model
+      | prettyOutput = Data pretty
+      }
+        |> processSteps
     JsonError (Ok message)->
-      ( { model
-        | prettyOutput = Failed message
-        , outfitHeight = NotAvailable
-        , currentStep = View.StepPretty
-        }
-      , Cmd.none
-      )
+      { model
+      | prettyOutput = Failed message
+      }
+        |> processSteps
     JsonError (Err err)->
       let _ = Debug.log "error error" err in
-      ( { model
-        | prettyOutput = Failed "Error decoding error"
-        , outfitHeight = NotAvailable
-        , currentStep = View.StepPretty
-        }
-      , Cmd.none
-      )
+      { model
+      | prettyOutput = Failed "Error decoding error"
+      }
+        |> processSteps
+
+processSteps : Model -> (Model, Cmd msg)
+processSteps model =
+  let
+    (newRaw, rawCmd) = processStep (Data model.codeEntry) model.output processDecode
+    (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
+    (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
+  in
+    ( { model
+      | output = newRaw
+      , prettyOutput = newPretty
+      , outfitHeight = newHeight
+      }
+    , Cmd.batch
+      [ rawCmd
+      , prettyCmd
+      , heightCmd
+      ]
+    )
+
+processStep : PortData a -> PortData b -> (a -> (PortData b, Cmd msg)) -> (PortData b, Cmd msg)
+processStep previous data onUpdate =
+  case previous of
+    NotRequested -> (NotRequested, Cmd.none)
+    NotAvailable -> (NotAvailable, Cmd.none)
+    Loading -> (NotAvailable, Cmd.none)
+    Data value ->
+      case data of
+        NotRequested -> onUpdate value
+        NotAvailable -> onUpdate value
+        Loading -> onUpdate value
+        Data v -> (Data v, Cmd.none)
+        Failed err -> (Failed err, Cmd.none)
+    Failed err -> (NotAvailable, Cmd.none)
+
+processDecode : String -> (PortData String, Cmd msg)
+processDecode codeEntry =
+  ( Loading
+  , if String.isEmpty codeEntry then
+      Cmd.none
+    else
+      Lz4.decompressBlock (codeEntry |> removeUrl)
+  )
+
+processFormat : String -> (PortData String, Cmd msg)
+processFormat text =
+  ( Loading
+  , FormatJson.format text
+  )
+
+processHeight : String -> (PortData OutfitHeight, Cmd msg)
+processHeight text =
+  ( PortData.jsonDecode heightDecoder (Data text)
+  , Cmd.none
+  )
 
 removeUrl : String -> String
 removeUrl urlText =
