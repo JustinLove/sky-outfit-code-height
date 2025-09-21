@@ -1,4 +1,11 @@
-module View exposing (Msg(..), OutfitHeight, OutputView(..), view, document)
+module View exposing
+  ( Msg(..)
+  , OutfitHeight
+  , StepId(..)
+  , stepList
+  , view
+  , document
+  )
 
 import PortData exposing (PortData(..))
 
@@ -13,20 +20,34 @@ type Msg
   = None
   | CodeText String
   | Decode
-  | SelectOutputView OutputView
+  | SelectStep StepId
 
 type alias OutfitHeight =
   { height : Float
   , scale : Float
   }
 
-type OutputView
- = NoOutput
- | RawOutput
- | PrettyOutput
- | DecodedValues
+type StepId
+  = StepCodeEntry
+  | StepRaw
+  | StepPretty
+  | StepDecoded
 
---document : (Msg -> msg) -> model -> Browser.Document msg
+stepList =
+  [ StepCodeEntry
+  , StepRaw
+  , StepPretty
+  , StepDecoded
+  ]
+
+type alias Sidechannel m =
+  { m
+  | codeEntry : String
+  , output : PortData String
+  , prettyOutput : PortData String
+  , outfitHeight : PortData OutfitHeight
+  }
+
 document tagger model =
   { title = "Sky Outfit Code Height"
   , body = [Html.map tagger (view model)]
@@ -39,12 +60,68 @@ view model =
     , Font.color foreground
     , Background.color background
     ] <|
-      column [ height fill, width fill ]
-        [ inputArea model.codeEntry
-        , intermediateArea model
-        , outputArea model
-        ]
+      stepsArea model stepList
 
+--stepsArea : Model -> List StepId -> Element Msg
+stepsArea model id =
+  column [ width fill ]
+    (List.map (stepArea model) id)
+
+--stepArea : Model -> Step Msg -> Element Msg
+stepArea model id =
+  column [ width fill ]
+    [ stepHeader "ico" (stepTitle id) SelectStep id model.currentStep
+    , if id == model.currentStep then
+        stepBody id model
+      else
+        none
+    ]
+
+--stepData : Model -> StepId -> ???
+stepData model id =
+  case id of
+    StepCodeEntry ->
+      model.codeEntry
+    StepRaw ->
+      model.output
+    StepPretty ->
+      model.prettyOutput
+    StepDecoded ->
+      model.outfitHeight
+
+stepTitle : StepId -> String
+stepTitle id =
+  case id of
+    StepCodeEntry -> "Outfit Code Text"
+    StepRaw -> "Raw Decoded Value"
+    StepPretty -> "Formatted JSON"
+    StepDecoded -> "Height"
+
+stepBody : StepId -> Sidechannel m -> Element Msg
+stepBody id sidechannel =
+  case id of
+    StepCodeEntry -> inputBody sidechannel
+    StepRaw -> rawBody sidechannel
+    StepPretty -> prettyBody sidechannel
+    StepDecoded -> decodedBody sidechannel
+
+inputBody : Sidechannel m -> Element Msg
+inputBody sidechannel =
+  inputArea sidechannel.codeEntry
+
+rawBody : Sidechannel m -> Element Msg
+rawBody sidechannel =
+  displayPortData rawOutputArea sidechannel.output
+
+prettyBody : Sidechannel m -> Element Msg
+prettyBody sidechannel =
+  displayPortData prettyOutputArea sidechannel.prettyOutput
+
+decodedBody : Sidechannel m -> Element Msg
+decodedBody sidechannel =
+  displayPortData heightArea sidechannel.outfitHeight
+
+inputArea : String -> Element Msg
 inputArea codeEntry =
   column [ padding 2, spacing 10, width fill ]
     [ Input.multiline
@@ -68,36 +145,6 @@ inputArea codeEntry =
       }
     ]
 
-intermediateArea model =
-  column [ width fill ]
-    [ case model.urlText of
-        Just url ->
-          paragraph
-            [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
-            ]
-            [ text url ]
-        Nothing ->
-          none
-    ]
-
-outputArea model =
-  column [ width fill, padding 10 ]
-    [ case model.outputView of
-      NoOutput ->
-        none
-      _ ->
-        outputAreaButtons model
-    , case model.outputView of
-      NoOutput ->
-        none
-      RawOutput ->
-        displayPortData rawOutputArea model.output
-      PrettyOutput ->
-        displayPortData prettyOutputArea model.prettyOutput
-      DecodedValues ->
-        displayPortData heightArea model.outfitHeight
-    ]
-
 displayPortData : (a -> Element msg) -> PortData a -> Element msg
 displayPortData withData portData =
   case portData of
@@ -119,37 +166,6 @@ showError body =
     [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
     ]
     [ text body ]
-
-displayPortAccessory : PortData a -> Element msg -> Element msg
-displayPortAccessory portData accessory =
-  case portData of
-    NotRequested ->
-      none
-    NotAvailable ->
-      none
-    Loading ->
-      none
-    Data data ->
-      accessory
-    Failed error ->
-      accessory
-
-outputAreaButtons model =
-  el
-    [ width fill
-    ]
-    <| row
-      [ padding 10
-      , spacing 20
-      , centerX
-      ]
-      [ tabHeader "ico" "Height" SelectOutputView DecodedValues model.outputView
-        |> displayPortAccessory model.outfitHeight
-      , tabHeader "ico" "JSON" SelectOutputView PrettyOutput model.outputView
-        |> displayPortAccessory model.prettyOutput
-      , tabHeader "ico" "Raw" SelectOutputView RawOutput model.outputView
-        |> displayPortAccessory model.output
-      ]
 
 rawOutputArea : String -> Element msg
 rawOutputArea output =
@@ -191,8 +207,8 @@ valueRow label value =
       (el [ alignLeft ] (text (value |> String.fromFloat)))
     ]
 
-tabHeader : String -> String -> (mode -> Msg) -> mode -> mode -> Element Msg
-tabHeader ico name tagger mode current =
+stepHeader : String -> String -> (mode -> Msg) -> mode -> mode -> Element Msg
+stepHeader ico name tagger mode current =
   Input.button [ width fill ]
     { onPress = Just (tagger mode)
     , label = 

@@ -21,7 +21,7 @@ type alias Model =
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
-  , outputView : View.OutputView
+  , currentStep : View.StepId
   }
 
 main = Browser.document
@@ -38,7 +38,7 @@ init search =
   , output = NotRequested
   , prettyOutput = NotRequested
   , outfitHeight = NotRequested
-  , outputView = View.NoOutput
+  , currentStep = View.StepCodeEntry
   }
     |> update (UI View.Decode)
 
@@ -47,7 +47,10 @@ update msg model =
   case msg of
     UI (View.None) -> (model, Cmd.none)
     UI (View.CodeText text) ->
-      ( { model | codeEntry = text }, Cmd.none)
+      ( { model
+        | codeEntry = text
+        }
+      , Cmd.none)
     UI (View.Decode) ->
       ( { model
         | urlText = Just model.codeEntry
@@ -58,14 +61,14 @@ update msg model =
         else
           Lz4.decompressBlock (model.codeEntry |> removeUrl)
       )
-    UI (View.SelectOutputView view) ->
-      ( { model | outputView = view }, Cmd.none)
+    UI (View.SelectStep step) ->
+      ( { model | currentStep = step }, Cmd.none)
     BlockDecompressed text ->
       ( { model
         | output = Data text
         , prettyOutput = Loading
         , outfitHeight = Loading
-        , outputView = View.RawOutput
+        , currentStep = View.StepRaw
         }
       , FormatJson.format text
       )
@@ -74,7 +77,7 @@ update msg model =
         | output = Failed message
         , prettyOutput = NotAvailable
         , outfitHeight = NotAvailable
-        , outputView = View.RawOutput
+        , currentStep = View.StepRaw
         }
       , Cmd.none
       )
@@ -84,7 +87,7 @@ update msg model =
         | output = Failed "Error decoding error"
         , prettyOutput = NotAvailable
         , outfitHeight = NotAvailable
-        , outputView = View.RawOutput
+        , currentStep = View.StepRaw
         }
       , Cmd.none
       )
@@ -92,7 +95,7 @@ update msg model =
       ( { model
         | prettyOutput = Data pretty
         , outfitHeight = model.output |> PortData.jsonDecode heightDecoder
-        , outputView = View.DecodedValues
+        , currentStep = View.StepDecoded
         }
       , Cmd.none
       )
@@ -100,7 +103,7 @@ update msg model =
       ( { model
         | prettyOutput = Failed message
         , outfitHeight = NotAvailable
-        , outputView = View.PrettyOutput
+        , currentStep = View.StepPretty
         }
       , Cmd.none
       )
@@ -109,7 +112,7 @@ update msg model =
       ( { model
         | prettyOutput = Failed "Error decoding error"
         , outfitHeight = NotAvailable
-        , outputView = View.PrettyOutput
+        , currentStep = View.StepPretty
         }
       , Cmd.none
       )
