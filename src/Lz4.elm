@@ -1,20 +1,27 @@
-port module Lz4 exposing (decompressBlock, blockDecompressed, error)
+port module Lz4 exposing (Block(..), decompressBlock, blockDecompressed)
 
 import Json.Decode as Decode
+
+type Block
+  = Decompressed String
+  | Error String
+  | CommunicationError Decode.Error
 
 decompressBlock : String -> Cmd msg
 decompressBlock = lz4DecompressBlock
 
-blockDecompressed : (String -> msg) -> Sub msg
-blockDecompressed = lz4BlockDecompressed
+blockDecompressed : (Block -> msg) -> Sub msg
+blockDecompressed tagger =
+  Sub.batch
+    [ lz4BlockDecompressed (Decompressed>>tagger)
+    , lz4Error (portMap>>tagger)
+    ]
 
-error : (Result Decode.Error String -> msg) -> Sub msg
-error msg =
-  lz4Error (portMap msg)
-
-portMap : (Result Decode.Error String -> msg) -> Decode.Value -> msg
-portMap msg =
-  (Decode.decodeValue errorDecoder) >> msg
+portMap : Decode.Value -> Block
+portMap value =
+  case Decode.decodeValue errorDecoder value of
+    Ok message -> Error message
+    Err error -> CommunicationError error
 
 errorDecoder : Decode.Decoder String
 errorDecoder =

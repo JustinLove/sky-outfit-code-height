@@ -10,10 +10,8 @@ import Json.Decode as Decode
 
 type Msg
   = UI View.Msg
-  | BlockDecompressed String
-  | DecompressError (Result Decode.Error String)
-  | JsonFormatted String
-  | JsonError (Result Decode.Error String)
+  | BlockDecompressed Lz4.Block
+  | JsonFormatted FormatJson.Formatted
 
 type alias Model =
   { codeEntry : String
@@ -56,36 +54,20 @@ update msg model =
         |> processSteps
     UI (View.SelectStep step) ->
       ( { model | currentStep = step }, Cmd.none)
-    BlockDecompressed text ->
+    BlockDecompressed block ->
       { model
-      | output = Data text
+      | output = case block of
+        Lz4.Decompressed text -> Data text
+        Lz4.Error message -> Failed message
+        Lz4.CommunicationError err -> Failed "Error decoding error"
       }
         |> processSteps
-    DecompressError (Ok message)->
+    JsonFormatted formatted ->
       { model
-      | output = Failed message
-      }
-        |> processSteps
-    DecompressError (Err err)->
-      let _ = Debug.log "error error" err in
-      { model
-      | output = Failed "Error decoding error"
-      }
-        |> processSteps
-    JsonFormatted pretty ->
-      { model
-      | prettyOutput = Data pretty
-      }
-        |> processSteps
-    JsonError (Ok message)->
-      { model
-      | prettyOutput = Failed message
-      }
-        |> processSteps
-    JsonError (Err err)->
-      let _ = Debug.log "error error" err in
-      { model
-      | prettyOutput = Failed "Error decoding error"
+      | prettyOutput = case formatted of
+        FormatJson.Pretty text -> Data text
+        FormatJson.Error message -> Failed message
+        FormatJson.CommunicationError err -> Failed "Error decoding error"
       }
         |> processSteps
 
@@ -189,9 +171,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Lz4.blockDecompressed BlockDecompressed
-    , Lz4.error DecompressError
     , FormatJson.formatted JsonFormatted
-    , FormatJson.error JsonError
     ]
 
 

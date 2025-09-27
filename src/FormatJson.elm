@@ -1,20 +1,27 @@
-port module FormatJson exposing (format, formatted, error)
+port module FormatJson exposing (Formatted(..), format, formatted)
 
 import Json.Decode as Decode
+
+type Formatted
+  = Pretty String
+  | Error String
+  | CommunicationError Decode.Error
 
 format : String -> Cmd msg
 format = formatJson
 
-formatted : (String -> msg) -> Sub msg
-formatted = formattedJson
+formatted : (Formatted -> msg) -> Sub msg
+formatted tagger =
+  Sub.batch
+    [ formattedJson (Pretty>>tagger)
+    , formatJsonError (portMap>>tagger)
+    ]
 
-error : (Result Decode.Error String -> msg) -> Sub msg
-error msg =
-  formatJsonError (portMap msg)
-
-portMap : (Result Decode.Error String -> msg) -> Decode.Value -> msg
-portMap msg =
-  (Decode.decodeValue errorDecoder) >> msg
+portMap : Decode.Value -> Formatted
+portMap value =
+  case Decode.decodeValue errorDecoder value of
+    Ok message -> Error message
+    Err error -> CommunicationError error
 
 errorDecoder : Decode.Decoder String
 errorDecoder =
