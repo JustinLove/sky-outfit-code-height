@@ -38,9 +38,9 @@ init search =
   , output = NotRequested
   , prettyOutput = NotRequested
   , outfitHeight = NotRequested
-  , currentStep = View.StepCodeEntry
+  , currentStep = View.StepQrFile
   }
-    |> update (UI View.Decode)
+    |> update (UI View.None)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -169,7 +169,7 @@ pickCurrentView model =
   else if isStepComplete model.qrCode then
     View.StepCodeEntry
   else
-    View.StepQrCode
+    View.StepQrFile
 
 isStepComplete : PortData a -> Bool
 isStepComplete data =

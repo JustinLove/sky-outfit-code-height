@@ -7,6 +7,10 @@ body {
   line-break: anywhere;
 }
 
+.hidden {
+  display: none;
+}
+
 #qrwebcam {
   width: 100%;
 }

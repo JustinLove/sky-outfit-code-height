@@ -32,14 +32,16 @@ type alias OutfitHeight =
   }
 
 type StepId
-  = StepQrCode
+  = StepQrFile
+  | StepQrCamera
   | StepCodeEntry
   | StepRaw
   | StepPretty
   | StepDecoded
 
 stepList =
-  [ StepQrCode
+  [ StepQrFile
+  , StepQrCamera
   , StepCodeEntry
   , StepRaw
   , StepPretty
@@ -77,17 +79,22 @@ stepsArea model id =
 stepArea model id =
   column [ width fill ]
     [ stepHeader "ico" (stepTitle id) SelectStep id model.currentStep
-    , if id == model.currentStep then
-        stepBody id model
-      else
-        none
+    , possiblyHidden (id == model.currentStep)
+      <| stepBody id model
     ]
+
+possiblyHidden : Bool -> Element msg -> Element msg
+possiblyHidden visible content =
+  el
+    (if visible then [ width fill ] else [ class "hidden" ])
+    content
 
 stepTitle : StepId -> String
 stepTitle id =
   case id of
-    StepQrCode -> "Scan QR Code"
-    StepCodeEntry -> "Outfit Code Text"
+    StepQrFile -> "Upload QR Image"
+    StepQrCamera -> "Scan QR Via Camera"
+    StepCodeEntry -> "Paste Outfit Code Text"
     StepRaw -> "Raw Decoded Value"
     StepPretty -> "Formatted JSON"
     StepDecoded -> "Height"
@@ -95,15 +102,20 @@ stepTitle id =
 stepBody : StepId -> Sidechannel m -> Element Msg
 stepBody id sidechannel =
   case id of
-    StepQrCode -> qrCodeBody sidechannel
+    StepQrFile -> qrFileBody sidechannel
+    StepQrCamera -> qrCameraBody sidechannel
     StepCodeEntry -> inputBody sidechannel
     StepRaw -> rawBody sidechannel
     StepPretty -> prettyBody sidechannel
     StepDecoded -> decodedBody sidechannel
 
-qrCodeBody : Sidechannel m -> Element Msg
-qrCodeBody sidechannel =
-  qrCodeArea sidechannel.codeEntry
+qrFileBody : Sidechannel m -> Element Msg
+qrFileBody sidechannel =
+  qrFileArea sidechannel.codeEntry
+
+qrCameraBody : Sidechannel m -> Element Msg
+qrCameraBody sidechannel =
+  qrCameraArea sidechannel.codeEntry
 
 inputBody : Sidechannel m -> Element Msg
 inputBody sidechannel =
@@ -121,17 +133,10 @@ decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
 
-qrCodeArea : String -> Element Msg
-qrCodeArea codeEntry =
+qrFileArea : String -> Element Msg
+qrFileArea codeEntry =
   column [ padding 2, spacing 10, width fill ]
     [ html qrCodeHtml
-    , html <| Html.video
-      [ Html.Attributes.id "qrwebcam"
-      ] []
-    , Input.button [ alignRight ]
-      { onPress = Just StartCamera
-      , label = text "Use Camera"
-      }
     ]
 
 qrCodeHtml : Html.Html Msg
@@ -142,6 +147,18 @@ qrCodeHtml =
     ]
     []
 
+qrCameraArea : String -> Element Msg
+qrCameraArea codeEntry =
+  column [ padding 2, spacing 10, width fill ]
+    [ html <| Html.video
+      [ Html.Attributes.id "qrwebcam"
+      ] []
+    , Input.button [ alignRight ]
+      { onPress = Just StartCamera
+      , label = text "Use Camera"
+      }
+    ]
+
 inputArea : String -> Element Msg
 inputArea codeEntry =
   column [ padding 2, spacing 10, width fill ]
@@ -151,7 +168,7 @@ inputArea codeEntry =
       , width (fill |> minimum 400)
       , height (px 200)
       , alignLeft
-      , htmlAttribute (Html.Attributes.class "line-break-anywhere")
+      , class "line-break-anywhere"
       , htmlAttribute (Html.Attributes.rows 6)
       ]
       { onChange = CodeText
@@ -184,14 +201,14 @@ displayPortData withData portData =
 showError : String -> Element msg
 showError body =
   paragraph
-    [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
+    [ class "line-break-anywhere"
     ]
     [ text body ]
 
 rawOutputArea : String -> Element msg
 rawOutputArea output =
   paragraph
-    [ htmlAttribute (Html.Attributes.class "line-break-anywhere")
+    [ class "line-break-anywhere"
     ]
     [ text output ]
 
@@ -249,6 +266,10 @@ targetFiles tagger =
   (Json.Decode.at ["target", "files"] (Json.Decode.list Json.Decode.value))
     |> Json.Decode.map tagger
     --|> Json.Decode.map (Debug.log "files")
+
+class : String -> Element.Attribute msg
+class name =
+  htmlAttribute (Html.Attributes.class name)
 
 foreground = rgb 0.9 0.9 0.9
 background = rgb 0.1 0.1 0.1
