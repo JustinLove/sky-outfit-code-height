@@ -13,11 +13,14 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
+import Json.Decode
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 
 type Msg
   = None
+  | BarCodeFile (List Json.Decode.Value)
   | CodeText String
   | Decode
   | SelectStep StepId
@@ -28,13 +31,15 @@ type alias OutfitHeight =
   }
 
 type StepId
-  = StepCodeEntry
+  = StepBarCode
+  | StepCodeEntry
   | StepRaw
   | StepPretty
   | StepDecoded
 
 stepList =
-  [ StepCodeEntry
+  [ StepBarCode
+  , StepCodeEntry
   , StepRaw
   , StepPretty
   , StepDecoded
@@ -77,21 +82,10 @@ stepArea model id =
         none
     ]
 
---stepData : Model -> StepId -> ???
-stepData model id =
-  case id of
-    StepCodeEntry ->
-      model.codeEntry
-    StepRaw ->
-      model.output
-    StepPretty ->
-      model.prettyOutput
-    StepDecoded ->
-      model.outfitHeight
-
 stepTitle : StepId -> String
 stepTitle id =
   case id of
+    StepBarCode -> "Scan Bar Code"
     StepCodeEntry -> "Outfit Code Text"
     StepRaw -> "Raw Decoded Value"
     StepPretty -> "Formatted JSON"
@@ -100,10 +94,15 @@ stepTitle id =
 stepBody : StepId -> Sidechannel m -> Element Msg
 stepBody id sidechannel =
   case id of
+    StepBarCode -> barCodeBody sidechannel
     StepCodeEntry -> inputBody sidechannel
     StepRaw -> rawBody sidechannel
     StepPretty -> prettyBody sidechannel
     StepDecoded -> decodedBody sidechannel
+
+barCodeBody : Sidechannel m -> Element Msg
+barCodeBody sidechannel =
+  barCodeArea sidechannel.codeEntry
 
 inputBody : Sidechannel m -> Element Msg
 inputBody sidechannel =
@@ -120,6 +119,20 @@ prettyBody sidechannel =
 decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
+
+barCodeArea : String -> Element Msg
+barCodeArea codeEntry =
+  column [ padding 2, spacing 10, width fill ]
+    [ html barCodeHtml
+    ]
+
+barCodeHtml : Html.Html Msg
+barCodeHtml =
+  Html.input
+    [ Html.Attributes.type_ "file"
+    , Html.Events.on "change" (targetFiles BarCodeFile)
+    ]
+    []
 
 inputArea : String -> Element Msg
 inputArea codeEntry =
@@ -222,6 +235,12 @@ stepHeader ico name tagger mode current =
           [ text name
           ]
     }
+
+targetFiles : (List Json.Decode.Value -> msg) -> Json.Decode.Decoder msg
+targetFiles tagger =
+  (Json.Decode.at ["target", "files"] (Json.Decode.list Json.Decode.value))
+    |> Json.Decode.map tagger
+    --|> Json.Decode.map (Debug.log "files")
 
 foreground = rgb 0.9 0.9 0.9
 background = rgb 0.1 0.1 0.1

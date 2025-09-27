@@ -3,6 +3,7 @@ module SkyOutfitCodeHeight exposing (..)
 import FormatJson
 import Lz4
 import PortData exposing (PortData(..))
+import QrScanner
 import View exposing (OutfitHeight)
 
 import Browser
@@ -10,11 +11,13 @@ import Json.Decode as Decode
 
 type Msg
   = UI View.Msg
+  | QrScanned QrScanner.QrCode
   | BlockDecompressed Lz4.Block
   | JsonFormatted FormatJson.Formatted
 
 type alias Model =
-  { codeEntry : String
+  { barCode : PortData String
+  , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
@@ -30,7 +33,8 @@ main = Browser.document
 
 init : String -> (Model, Cmd Msg)
 init search =
-  { codeEntry = search
+  { barCode = (if search == "" then NotRequested else Data search)
+  , codeEntry = search
   , output = NotRequested
   , prettyOutput = NotRequested
   , outfitHeight = NotRequested
@@ -42,6 +46,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     UI (View.None) -> (model, Cmd.none)
+    UI (View.BarCodeFile files) ->
+      ( model
+      , files
+       |> List.map QrScanner.scanFile
+       |> Cmd.batch
+      )
     UI (View.CodeText text) ->
       ( { model
         | codeEntry = text
@@ -54,6 +64,14 @@ update msg model =
         |> processSteps
     UI (View.SelectStep step) ->
       ( { model | currentStep = step }, Cmd.none)
+    QrScanned code ->
+      { model
+      | barCode = case code of
+        QrScanner.Scanned text -> Data text
+        QrScanner.Error message -> Failed message
+        QrScanner.CommunicationError err -> Failed "Error decoding error"
+      }
+        |> processSteps
     BlockDecompressed block ->
       { model
       | output = case block of
@@ -74,12 +92,14 @@ update msg model =
 processSteps : Model -> (Model, Cmd msg)
 processSteps model =
   let
-    (newRaw, rawCmd) = processStep (Data model.codeEntry) model.output processDecode
+    (newEntry, qrCmd) = processStep model.barCode Loading processQrCode
+    (newRaw, rawCmd) = processStep newEntry model.output processDecode
     (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
     (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
     dataModel =
       { model
-      | output = newRaw
+      | codeEntry = newEntry |> PortData.withDefault ""
+      , output = newRaw
       , prettyOutput = newPretty
       , outfitHeight = newHeight
       }
@@ -108,6 +128,12 @@ processStep previous data onUpdate =
         Data v -> (data, Cmd.none)
         Failed err -> (data, Cmd.none)
     Failed err -> (NotAvailable, Cmd.none)
+
+processQrCode : String -> (PortData String, Cmd msg)
+processQrCode codeText =
+  ( Data codeText
+  , Cmd.none
+  )
 
 processDecode : String -> (PortData String, Cmd msg)
 processDecode codeEntry =
@@ -138,8 +164,10 @@ pickCurrentView model =
     View.StepPretty
   else if isStepComplete model.output then
     View.StepRaw
-  else
+  else if isStepComplete model.barCode then
     View.StepCodeEntry
+  else
+    View.StepBarCode
 
 isStepComplete : PortData a -> Bool
 isStepComplete data =
@@ -170,8 +198,7 @@ heightDecoder =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Lz4.blockDecompressed BlockDecompressed
+    [ QrScanner.scanned QrScanned
+    , Lz4.blockDecompressed BlockDecompressed
     , FormatJson.formatted JsonFormatted
     ]
-
-
