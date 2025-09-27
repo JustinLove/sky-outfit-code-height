@@ -71,7 +71,10 @@ if (app.ports.qrScanCamera) {
         scanner.stop()
         app.ports.qrFileScanned.send(result.data)
       },
-      {returnDetailedScanResult: true})
+      {
+        returnDetailedScanResult: true,
+        // onDecodeError: function(error) { console.log(error) },
+      })
   } catch (e) {
     app.ports.qrError.send(e)
   }
