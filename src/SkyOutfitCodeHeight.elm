@@ -16,7 +16,7 @@ type Msg
   | JsonFormatted FormatJson.Formatted
 
 type alias Model =
-  { barCode : PortData String
+  { qrCode : PortData String
   , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
@@ -33,7 +33,7 @@ main = Browser.document
 
 init : String -> (Model, Cmd Msg)
 init search =
-  { barCode = (if search == "" then NotRequested else Data search)
+  { qrCode = (if search == "" then NotRequested else Data search)
   , codeEntry = search
   , output = NotRequested
   , prettyOutput = NotRequested
@@ -46,14 +46,14 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     UI (View.None) -> (model, Cmd.none)
-    UI (View.BarCodeFile files) ->
+    UI (View.QrCodeFile files) ->
       ( model
       , files
        |> List.map QrScanner.scanFile
        |> Cmd.batch
       )
     UI (View.StartCamera) ->
-      ( { model | barCode = Loading }, QrScanner.scanCamera )
+      ( { model | qrCode = Loading }, QrScanner.scanCamera )
     UI (View.CodeText text) ->
       ( { model
         | codeEntry = text
@@ -68,7 +68,7 @@ update msg model =
       ( { model | currentStep = step }, Cmd.none)
     QrScanned code ->
       { model
-      | barCode = case code of
+      | qrCode = case code of
         QrScanner.Scanned text -> Data text
         QrScanner.Error message -> Failed message
         QrScanner.CommunicationError err -> Failed "Error decoding error"
@@ -94,7 +94,7 @@ update msg model =
 processSteps : Model -> (Model, Cmd msg)
 processSteps model =
   let
-    (newEntry, qrCmd) = processStep model.barCode Loading processQrCode
+    (newEntry, qrCmd) = processStep model.qrCode Loading processQrCode
     (newRaw, rawCmd) = processStep newEntry model.output processDecode
     (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
     (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
@@ -166,10 +166,10 @@ pickCurrentView model =
     View.StepPretty
   else if isStepComplete model.output then
     View.StepRaw
-  else if isStepComplete model.barCode then
+  else if isStepComplete model.qrCode then
     View.StepCodeEntry
   else
-    View.StepBarCode
+    View.StepQrCode
 
 isStepComplete : PortData a -> Bool
 isStepComplete data =

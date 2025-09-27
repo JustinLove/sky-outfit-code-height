@@ -20,7 +20,7 @@ import Html.Events
 
 type Msg
   = None
-  | BarCodeFile (List Json.Decode.Value)
+  | QrCodeFile (List Json.Decode.Value)
   | StartCamera
   | CodeText String
   | Decode
@@ -32,14 +32,14 @@ type alias OutfitHeight =
   }
 
 type StepId
-  = StepBarCode
+  = StepQrCode
   | StepCodeEntry
   | StepRaw
   | StepPretty
   | StepDecoded
 
 stepList =
-  [ StepBarCode
+  [ StepQrCode
   , StepCodeEntry
   , StepRaw
   , StepPretty
@@ -86,7 +86,7 @@ stepArea model id =
 stepTitle : StepId -> String
 stepTitle id =
   case id of
-    StepBarCode -> "Scan Bar Code"
+    StepQrCode -> "Scan QR Code"
     StepCodeEntry -> "Outfit Code Text"
     StepRaw -> "Raw Decoded Value"
     StepPretty -> "Formatted JSON"
@@ -95,15 +95,15 @@ stepTitle id =
 stepBody : StepId -> Sidechannel m -> Element Msg
 stepBody id sidechannel =
   case id of
-    StepBarCode -> barCodeBody sidechannel
+    StepQrCode -> qrCodeBody sidechannel
     StepCodeEntry -> inputBody sidechannel
     StepRaw -> rawBody sidechannel
     StepPretty -> prettyBody sidechannel
     StepDecoded -> decodedBody sidechannel
 
-barCodeBody : Sidechannel m -> Element Msg
-barCodeBody sidechannel =
-  barCodeArea sidechannel.codeEntry
+qrCodeBody : Sidechannel m -> Element Msg
+qrCodeBody sidechannel =
+  qrCodeArea sidechannel.codeEntry
 
 inputBody : Sidechannel m -> Element Msg
 inputBody sidechannel =
@@ -121,10 +121,10 @@ decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
 
-barCodeArea : String -> Element Msg
-barCodeArea codeEntry =
+qrCodeArea : String -> Element Msg
+qrCodeArea codeEntry =
   column [ padding 2, spacing 10, width fill ]
-    [ html barCodeHtml
+    [ html qrCodeHtml
     , html <| Html.video
       [ Html.Attributes.id "qrwebcam"
       ] []
@@ -134,11 +134,11 @@ barCodeArea codeEntry =
       }
     ]
 
-barCodeHtml : Html.Html Msg
-barCodeHtml =
+qrCodeHtml : Html.Html Msg
+qrCodeHtml =
   Html.input
     [ Html.Attributes.type_ "file"
-    , Html.Events.on "change" (targetFiles BarCodeFile)
+    , Html.Events.on "change" (targetFiles QrCodeFile)
     ]
     []
 
