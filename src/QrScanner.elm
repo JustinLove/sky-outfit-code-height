@@ -1,4 +1,4 @@
-port module QrScanner exposing (QrCode(..), scanFile, scanned)
+port module QrScanner exposing (QrCode(..), scanFile, scanCamera, scanned)
 
 import Json.Decode as Decode
 
@@ -9,6 +9,9 @@ type QrCode
 
 scanFile : Decode.Value -> Cmd msg
 scanFile = qrScanFile
+
+scanCamera : Cmd msg
+scanCamera = qrScanCamera ()
 
 scanned : (QrCode -> msg) -> Sub msg
 scanned tagger =
@@ -31,5 +34,6 @@ errorDecoder =
     ]
 
 port qrScanFile : Decode.Value -> Cmd msg
+port qrScanCamera : () -> Cmd msg
 port qrFileScanned : (String -> msg) -> Sub msg
 port qrError : (Decode.Value -> msg) -> Sub msg

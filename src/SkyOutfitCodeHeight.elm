@@ -52,6 +52,8 @@ update msg model =
        |> List.map QrScanner.scanFile
        |> Cmd.batch
       )
+    UI (View.StartCamera) ->
+      ( { model | barCode = Loading }, QrScanner.scanCamera )
     UI (View.CodeText text) ->
       ( { model
         | codeEntry = text

@@ -1,4 +1,3 @@
 - qr scan failure report
-- qr video
 - presentation of qr vs paste
 - nice UI

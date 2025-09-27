@@ -6,3 +6,7 @@ body {
 .line-break-anywhere {
   line-break: anywhere;
 }
+
+#qrwebcam {
+  width: 100%;
+}

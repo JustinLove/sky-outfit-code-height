@@ -62,6 +62,29 @@ if (app.ports.qrScanFile) {
   })
 }
 
+if (app.ports.qrScanCamera) {
+  var scanner;
+  try {
+    var videoElement = document.getElementById('qrwebcam')
+    scanner = new QrScanner(videoElement,
+      function(result) {
+        scanner.stop()
+        app.ports.qrFileScanned.send(result.data)
+      },
+      {returnDetailedScanResult: true})
+  } catch (e) {
+    app.ports.qrError.send(e)
+  }
+  app.ports.qrScanCamera.subscribe(function() {
+    try {
+      scanner.stop()
+      scanner.start()
+    } catch (e) {
+      app.ports.qrError.send(e)
+    }
+  })
+}
+
 </script>
 <!--script defer src="svgxuse.js"></script-->
 
