@@ -68,9 +68,7 @@ if (app.ports.qrCommand) {
       .then(function(result) {
         app.ports.qrFileScanned.send(result.data)
       })
-      .catch(function(error) {
-        app.ports.qrError.send(error)
-      })
+      .catch(app.ports.qrError.send)
   }
 
   function command(message) {
@@ -80,7 +78,7 @@ if (app.ports.qrCommand) {
           scanImage(message.file)
           break
         case "startCamera":
-          scanner.start()
+          scanner.start().catch(app.ports.qrError.send)
           break
         case "stopCamera":
           scanner.stop()

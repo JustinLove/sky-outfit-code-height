@@ -1,4 +1,5 @@
 - qr scan failure report
+- hasCamera
 - presentation of qr vs paste
 - nice UI
 - intro message

@@ -49,7 +49,8 @@ stepList =
 
 type alias Sidechannel m =
   { m
-  | codeEntry : String
+  | qrCode : PortData String
+  , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
@@ -110,7 +111,7 @@ stepBody id sidechannel =
 
 qrFileBody : Sidechannel m -> Element Msg
 qrFileBody sidechannel =
-  qrFileArea sidechannel.codeEntry
+  qrFileArea sidechannel.qrCode
 
 qrCameraBody : Sidechannel m -> Element Msg
 qrCameraBody sidechannel =
@@ -132,14 +133,15 @@ decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
 
-qrFileArea : String -> Element Msg
-qrFileArea codeEntry =
+qrFileArea : PortData String -> Element Msg
+qrFileArea qrCode =
   column [ padding 2, spacing 10, width fill ]
-    [ html qrCodeHtml
+    [ html qrCodeButtonHtml
+    , displayPortError qrCode
     ]
 
-qrCodeHtml : Html.Html Msg
-qrCodeHtml =
+qrCodeButtonHtml : Html.Html Msg
+qrCodeButtonHtml =
   Html.input
     [ Html.Attributes.type_ "file"
     , Html.Events.on "change" (targetFiles QrCodeFile)
@@ -192,6 +194,19 @@ displayPortData withData portData =
     Failed error ->
       showError error
 
+displayPortError : PortData a -> Element msg
+displayPortError portData =
+  case portData of
+    NotRequested ->
+      none
+    NotAvailable ->
+      none
+    Loading ->
+      text "loading"
+    Data data ->
+      none
+    Failed error ->
+      showError error
 
 showError : String -> Element msg
 showError body =

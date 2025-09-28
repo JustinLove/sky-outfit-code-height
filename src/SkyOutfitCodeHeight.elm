@@ -176,7 +176,7 @@ pickCurrentView model =
     View.StepPretty
   else if isStepComplete model.output then
     View.StepRaw
-  else if isStepComplete model.qrCode then
+  else if PortData.toMaybe model.qrCode /= Nothing then
     View.StepCodeEntry
   else
     View.StepQrFile
