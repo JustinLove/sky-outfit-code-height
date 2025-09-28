@@ -1,4 +1,3 @@
-- paste text broken
 - hasCamera
 - presentation of qr vs paste
 - nice UI

@@ -34,7 +34,7 @@ main = Browser.document
 
 init : String -> (Model, Cmd Msg)
 init search =
-  { fileCode = (if search == "" then NotRequested else Data search)
+  { fileCode = NotRequested
   , cameraCode = NotRequested
   , codeEntry = search
   , output = NotRequested
@@ -42,7 +42,7 @@ init search =
   , outfitHeight = NotRequested
   , currentStep = View.StepQrFile
   }
-    |> update (UI View.None)
+    |> processSteps
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -104,7 +104,8 @@ update msg model =
 processSteps : Model -> (Model, Cmd msg)
 processSteps model =
   let
-    newEntry = pickQrCode model.fileCode model.cameraCode
+    qrCode = pickQrCode model.fileCode model.cameraCode
+    newEntry = if isStepComplete qrCode then qrCode else Data model.codeEntry
     (newRaw, rawCmd) = processStep newEntry model.output processDecode
     (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
     (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
