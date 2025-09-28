@@ -16,7 +16,8 @@ type Msg
   | JsonFormatted FormatJson.Formatted
 
 type alias Model =
-  { qrCode : PortData String
+  { fileCode : PortData String
+  , cameraCode : PortData String
   , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
@@ -33,7 +34,8 @@ main = Browser.document
 
 init : String -> (Model, Cmd Msg)
 init search =
-  { qrCode = (if search == "" then NotRequested else Data search)
+  { fileCode = (if search == "" then NotRequested else Data search)
+  , cameraCode = NotRequested
   , codeEntry = search
   , output = NotRequested
   , prettyOutput = NotRequested
@@ -66,9 +68,16 @@ update msg model =
       changeStep step model
     QrScanned code ->
       { model
-      | qrCode = case code of
+      | fileCode = case code of
         QrScanner.FileScanned text -> Data text
         QrScanner.FileError message -> Failed message
+        QrScanner.CameraScanned text -> NotRequested
+        QrScanner.CameraError message -> model.fileCode
+        QrScanner.Error message -> Failed message
+        QrScanner.CommunicationError err -> Failed "Error decoding error"
+      , cameraCode = case code of
+        QrScanner.FileScanned text -> NotRequested
+        QrScanner.FileError message -> model.cameraCode
         QrScanner.CameraScanned text -> Data text
         QrScanner.CameraError message -> Failed message
         QrScanner.Error message -> Failed message
@@ -95,7 +104,7 @@ update msg model =
 processSteps : Model -> (Model, Cmd msg)
 processSteps model =
   let
-    (newEntry, qrCmd) = processStep model.qrCode Loading processQrCode
+    newEntry = pickQrCode model.fileCode model.cameraCode
     (newRaw, rawCmd) = processStep newEntry model.output processDecode
     (newPretty, prettyCmd) = processStep newRaw model.prettyOutput processFormat
     (newHeight, heightCmd) = processStep newPretty model.outfitHeight processHeight
@@ -144,6 +153,17 @@ processStep previous data onUpdate =
         Failed err -> (data, Cmd.none)
     Failed err -> (NotAvailable, Cmd.none)
 
+pickQrCode : PortData String -> PortData String -> PortData String
+pickQrCode a b =
+  case (a, b) of
+    (Data _, Data "") -> a
+    (Data "", Data _) -> b
+    (Data _, _) -> a
+    (_, Data _) -> b
+    (Failed _, _) -> a
+    (_, Failed _) -> b
+    _ -> a
+
 processQrCode : String -> (PortData String, Cmd msg)
 processQrCode codeText =
   ( Data codeText
@@ -179,8 +199,12 @@ pickCurrentView model =
     View.StepPretty
   else if isStepComplete model.output then
     View.StepRaw
-  else if PortData.toMaybe model.qrCode /= Nothing then
+  else if isStepSuccess model.fileCode then
     View.StepCodeEntry
+  else if isStepSuccess model.cameraCode then
+    View.StepCodeEntry
+  else if isStepFailed model.cameraCode then
+    View.StepQrCamera
   else
     View.StepQrFile
 
@@ -191,6 +215,24 @@ isStepComplete data =
     NotAvailable -> False
     Loading -> False
     Data _ -> True
+    Failed _ -> True
+
+isStepSuccess : PortData a -> Bool
+isStepSuccess data =
+  case data of
+    NotRequested -> False
+    NotAvailable -> False
+    Loading -> False
+    Data _ -> True
+    Failed _ -> False
+
+isStepFailed : PortData a -> Bool
+isStepFailed data =
+  case data of
+    NotRequested -> False
+    NotAvailable -> False
+    Loading -> False
+    Data _ -> False
     Failed _ -> True
 
 removeUrl : String -> String

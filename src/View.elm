@@ -49,7 +49,8 @@ stepList =
 
 type alias Sidechannel m =
   { m
-  | qrCode : PortData String
+  | fileCode : PortData String
+  , cameraCode : PortData String
   , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
@@ -111,11 +112,11 @@ stepBody id sidechannel =
 
 qrFileBody : Sidechannel m -> Element Msg
 qrFileBody sidechannel =
-  qrFileArea sidechannel.qrCode
+  qrFileArea sidechannel.fileCode
 
 qrCameraBody : Sidechannel m -> Element Msg
 qrCameraBody sidechannel =
-  qrCameraArea sidechannel.codeEntry
+  qrCameraArea sidechannel.cameraCode
 
 inputBody : Sidechannel m -> Element Msg
 inputBody sidechannel =
@@ -148,12 +149,13 @@ qrCodeButtonHtml =
     ]
     []
 
-qrCameraArea : String -> Element Msg
-qrCameraArea codeEntry =
+qrCameraArea : PortData String -> Element Msg
+qrCameraArea qrCode =
   column [ padding 2, spacing 10, width fill ]
     [ html <| Html.video
       [ Html.Attributes.id "qrwebcam"
       ] []
+    , displayPortError qrCode
     ]
 
 inputArea : String -> Element Msg

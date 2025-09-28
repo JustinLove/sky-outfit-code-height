@@ -60,7 +60,13 @@ if (app.ports.qrCommand) {
       },
       {
         returnDetailedScanResult: true,
-        // onDecodeError: function(error) { console.log(error) },
+        /*onDecodeError: function(error) {
+          // console.log(error)
+          app.ports.qrEvent.send({
+            kind: 'cameraError',
+            error: error,
+          })
+        },*/
       })
   } catch (e) {
     app.ports.qrEvent.send({
