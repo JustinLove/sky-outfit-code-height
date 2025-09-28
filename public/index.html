@@ -53,22 +53,43 @@ if (app.ports.qrCommand) {
     scanner = new QrScanner(videoElement,
       function(result) {
         scanner.stop()
-        app.ports.qrFileScanned.send(result.data)
+        app.ports.qrEvent.send({
+          kind: 'cameraScanned',
+          result: result,
+        })
       },
       {
         returnDetailedScanResult: true,
         // onDecodeError: function(error) { console.log(error) },
       })
   } catch (e) {
-    app.ports.qrError.send(e)
+    app.ports.qrEvent.send({
+      kind: 'cameraError',
+      error: e,
+    })
   }
 
   function scanImage(file) {
-    QrScanner.scanImage(file, {returnDetailedScanResult: true})
-      .then(function(result) {
-        app.ports.qrFileScanned.send(result.data)
-      })
-      .catch(app.ports.qrError.send)
+    try {
+      QrScanner.scanImage(file, {returnDetailedScanResult: true})
+        .then(function(result) {
+          app.ports.qrEvent.send({
+            kind: 'fileScanned',
+            result: result,
+          })
+        })
+        .catch(function(error) {
+          app.ports.qrEvent.send({
+            kind: 'fileError',
+            error: error,
+          })
+        })
+  } catch (e) {
+    app.ports.qrEvent.send({
+      kind: 'fileError',
+      error: e,
+    })
+  }
   }
 
   function command(message) {
@@ -78,7 +99,12 @@ if (app.ports.qrCommand) {
           scanImage(message.file)
           break
         case "startCamera":
-          scanner.start().catch(app.ports.qrError.send)
+          scanner.start().catch(function(error) {
+            app.ports.qrEvent.send({
+              kind: 'cameraError',
+              error: error,
+            })
+          })
           break
         case "stopCamera":
           scanner.stop()
@@ -88,7 +114,10 @@ if (app.ports.qrCommand) {
           break
       }
     } catch (e) {
-      app.ports.qrError.send(e)
+      app.ports.qrEvent.send({
+        kind: 'error',
+        error: e,
+      })
     }
   }
 

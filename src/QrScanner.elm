@@ -1,10 +1,13 @@
-port module QrScanner exposing (QrCode(..), scanFile, startCamera, stopCamera, scanned)
+port module QrScanner exposing (Event(..), scanFile, startCamera, stopCamera, event)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
 
-type QrCode
-  = Scanned String
+type Event
+  = FileScanned String
+  | FileError String
+  | CameraScanned String
+  | CameraError String
   | Error String
   | CommunicationError Decode.Error
 
@@ -30,26 +33,51 @@ stopCamera =
     ]
     |> qrCommand
 
-scanned : (QrCode -> msg) -> Sub msg
-scanned tagger =
-  Sub.batch
-    [ qrFileScanned (Scanned>>tagger)
-    , qrError (portMap>>tagger)
-    ]
+event : (Event -> msg) -> Sub msg
+event tagger =
+  qrEvent (decodeEvent >> tagger)
 
-portMap : Decode.Value -> QrCode
-portMap value =
-  case Decode.decodeValue errorDecoder value of
+decodeEvent : Decode.Value -> Event
+decodeEvent value =
+  case Decode.decodeValue eventDecoder value of
     Ok code -> code
     Err error -> CommunicationError error
 
-errorDecoder : Decode.Decoder QrCode
+eventDecoder : Decode.Decoder Event
+eventDecoder =
+  (Decode.field "kind" Decode.string)
+    |> Decode.andThen (\kind ->
+      case kind of
+        "fileScanned" ->
+          Decode.map FileScanned resultDecoder
+        "fileError" ->
+          Decode.map FileError (Decode.field "error" errorDecoder)
+        "cameraScanned" ->
+          Decode.map CameraScanned resultDecoder
+        "cameraError" ->
+          Decode.map CameraError (Decode.field "error" errorDecoder)
+        "error" ->
+          Decode.map Error (Decode.field "error" errorDecoder)
+        _ ->
+          Decode.fail kind
+      )
+
+resultDecoder : Decode.Decoder String
+resultDecoder =
+  Decode.field "result" (Decode.field "data" Decode.string)
+
+errorFieldDecoder : Decode.Decoder String
+errorFieldDecoder =
+  Decode.field "error" errorDecoder
+
+errorDecoder : Decode.Decoder String
 errorDecoder =
   Decode.oneOf
-    [ Decode.map Error (Decode.field "message" Decode.string)
-    , Decode.map Error (Decode.string)
+    [ Decode.field "message" Decode.string
+    , Decode.string
     ]
 
 port qrCommand : Decode.Value -> Cmd msg
 port qrFileScanned : (String -> msg) -> Sub msg
 port qrError : (Decode.Value -> msg) -> Sub msg
+port qrEvent : (Decode.Value -> msg) -> Sub msg

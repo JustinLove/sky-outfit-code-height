@@ -11,7 +11,7 @@ import Json.Decode as Decode
 
 type Msg
   = UI View.Msg
-  | QrScanned QrScanner.QrCode
+  | QrScanned QrScanner.Event
   | BlockDecompressed Lz4.Block
   | JsonFormatted FormatJson.Formatted
 
@@ -67,7 +67,10 @@ update msg model =
     QrScanned code ->
       { model
       | qrCode = case code of
-        QrScanner.Scanned text -> Data text
+        QrScanner.FileScanned text -> Data text
+        QrScanner.FileError message -> Failed message
+        QrScanner.CameraScanned text -> Data text
+        QrScanner.CameraError message -> Failed message
         QrScanner.Error message -> Failed message
         QrScanner.CommunicationError err -> Failed "Error decoding error"
       }
@@ -210,7 +213,7 @@ heightDecoder =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ QrScanner.scanned QrScanned
+    [ QrScanner.event QrScanned
     , Lz4.blockDecompressed BlockDecompressed
     , FormatJson.formatted JsonFormatted
     ]
