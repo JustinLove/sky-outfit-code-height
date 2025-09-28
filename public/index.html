@@ -44,25 +44,9 @@ if (app.ports.formatJson) {
   })
 }
 
-// ------------------- FormatJson --------------------
+// ------------------- QrScanner --------------------
 import QrScanner from './qr-scanner.min.js'
-if (app.ports.qrScanFile) {
-  app.ports.qrScanFile.subscribe(function(file) {
-    try {
-      QrScanner.scanImage(file, {returnDetailedScanResult: true})
-        .then(function(result) {
-          app.ports.qrFileScanned.send(result.data)
-        })
-        .catch(function(error) {
-          app.ports.qrError.send(error)
-        })
-    } catch (e) {
-      app.ports.qrError.send(e)
-    }
-  })
-}
-
-if (app.ports.qrScanCamera) {
+if (app.ports.qrCommand) {
   var scanner;
   try {
     var videoElement = document.getElementById('qrwebcam')
@@ -78,14 +62,39 @@ if (app.ports.qrScanCamera) {
   } catch (e) {
     app.ports.qrError.send(e)
   }
-  app.ports.qrScanCamera.subscribe(function() {
+
+  function scanImage(file) {
+    QrScanner.scanImage(file, {returnDetailedScanResult: true})
+      .then(function(result) {
+        app.ports.qrFileScanned.send(result.data)
+      })
+      .catch(function(error) {
+        app.ports.qrError.send(error)
+      })
+  }
+
+  function command(message) {
     try {
-      scanner.stop()
-      scanner.start()
+      switch (message.kind) {
+        case "scanImage":
+          scanImage(message.file)
+          break
+        case "startCamera":
+          scanner.start()
+          break
+        case "stopCamera":
+          scanner.stop()
+          break
+        default:
+          console.log('unknown command', message)
+          break
+      }
     } catch (e) {
       app.ports.qrError.send(e)
     }
-  })
+  }
+
+  app.ports.qrCommand.subscribe(command)
 }
 
 </script>

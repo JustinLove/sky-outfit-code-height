@@ -1,6 +1,7 @@
-port module QrScanner exposing (QrCode(..), scanFile, scanCamera, scanned)
+port module QrScanner exposing (QrCode(..), scanFile, startCamera, stopCamera, scanned)
 
 import Json.Decode as Decode
+import Json.Encode as Encode
 
 type QrCode
   = Scanned String
@@ -8,10 +9,26 @@ type QrCode
   | CommunicationError Decode.Error
 
 scanFile : Decode.Value -> Cmd msg
-scanFile = qrScanFile
+scanFile file =
+  Encode.object
+    [ ("kind", Encode.string "scanImage")
+    , ("file", file)
+    ]
+    |> qrCommand
 
-scanCamera : Cmd msg
-scanCamera = qrScanCamera ()
+startCamera : Cmd msg
+startCamera =
+  Encode.object
+    [ ("kind", Encode.string "startCamera")
+    ]
+    |> qrCommand
+
+stopCamera : Cmd msg
+stopCamera =
+  Encode.object
+    [ ("kind", Encode.string "stopCamera")
+    ]
+    |> qrCommand
 
 scanned : (QrCode -> msg) -> Sub msg
 scanned tagger =
@@ -33,7 +50,6 @@ errorDecoder =
     , Decode.map Error (Decode.string)
     ]
 
-port qrScanFile : Decode.Value -> Cmd msg
-port qrScanCamera : () -> Cmd msg
+port qrCommand : Decode.Value -> Cmd msg
 port qrFileScanned : (String -> msg) -> Sub msg
 port qrError : (Decode.Value -> msg) -> Sub msg

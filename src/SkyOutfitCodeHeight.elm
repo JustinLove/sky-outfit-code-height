@@ -53,7 +53,7 @@ update msg model =
        |> Cmd.batch
       )
     UI (View.StartCamera) ->
-      ( { model | qrCode = Loading }, QrScanner.scanCamera )
+      ( { model | qrCode = Loading }, QrScanner.startCamera )
     UI (View.CodeText text) ->
       ( { model
         | codeEntry = text
