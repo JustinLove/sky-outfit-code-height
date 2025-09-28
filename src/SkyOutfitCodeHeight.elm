@@ -52,8 +52,6 @@ update msg model =
        |> List.map QrScanner.scanFile
        |> Cmd.batch
       )
-    UI (View.StartCamera) ->
-      ( { model | qrCode = Loading }, QrScanner.startCamera )
     UI (View.CodeText text) ->
       ( { model
         | codeEntry = text
@@ -65,7 +63,7 @@ update msg model =
       }
         |> processSteps
     UI (View.SelectStep step) ->
-      ( { model | currentStep = step }, Cmd.none)
+      changeStep step model
     QrScanned code ->
       { model
       | qrCode = case code of
@@ -105,16 +103,28 @@ processSteps model =
       , prettyOutput = newPretty
       , outfitHeight = newHeight
       }
+    newStep = pickCurrentView dataModel
+    (newModel, stepCmd) = changeStep newStep dataModel
   in
-    ( { dataModel
-      | currentStep = pickCurrentView dataModel
-      }
+    ( newModel
     , Cmd.batch
       [ rawCmd
       , prettyCmd
       , heightCmd
+      , stepCmd
       ]
     )
+
+changeStep : View.StepId -> Model -> (Model, Cmd msg)
+changeStep step model =
+  if model.currentStep == step then
+    (model, Cmd.none)
+  else if model.currentStep == View.StepQrCamera then
+    ({model | currentStep = step}, QrScanner.stopCamera)
+  else if step == View.StepQrCamera then
+    ({model | currentStep = step}, QrScanner.startCamera)
+  else
+    ({model | currentStep = step}, Cmd.none)
 
 processStep : PortData a -> PortData b -> (a -> (PortData b, Cmd msg)) -> (PortData b, Cmd msg)
 processStep previous data onUpdate =

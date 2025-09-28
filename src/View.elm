@@ -21,7 +21,6 @@ import Html.Events
 type Msg
   = None
   | QrCodeFile (List Json.Decode.Value)
-  | StartCamera
   | CodeText String
   | Decode
   | SelectStep StepId
@@ -153,10 +152,6 @@ qrCameraArea codeEntry =
     [ html <| Html.video
       [ Html.Attributes.id "qrwebcam"
       ] []
-    , Input.button [ alignRight ]
-      { onPress = Just StartCamera
-      , label = text "Use Camera"
-      }
     ]
 
 inputArea : String -> Element Msg

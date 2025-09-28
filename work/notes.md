@@ -1,6 +1,5 @@
-- webcam start/stop
-  - x command messages
-  - step selected
 - qr scan failure report
 - presentation of qr vs paste
 - nice UI
+- intro message
+- camera notices
