@@ -8,6 +8,7 @@ type Event
   | FileError String
   | CameraScanned String
   | CameraError String
+  | HasCamera Bool
   | Error String
   | CommunicationError Decode.Error
 
@@ -56,6 +57,8 @@ eventDecoder =
           Decode.map CameraScanned resultDecoder
         "cameraError" ->
           Decode.map CameraError (Decode.field "error" errorDecoder)
+        "hasCamera" ->
+          Decode.map HasCamera (Decode.field "hasCamera" Decode.bool)
         "error" ->
           Decode.map Error (Decode.field "error" errorDecoder)
         _ ->
@@ -78,6 +81,4 @@ errorDecoder =
     ]
 
 port qrCommand : Decode.Value -> Cmd msg
-port qrFileScanned : (String -> msg) -> Sub msg
-port qrError : (Decode.Value -> msg) -> Sub msg
 port qrEvent : (Decode.Value -> msg) -> Sub msg

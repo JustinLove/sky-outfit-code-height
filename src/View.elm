@@ -2,7 +2,6 @@ module View exposing
   ( Msg(..)
   , OutfitHeight
   , StepId(..)
-  , stepList
   , view
   , document
   )
@@ -47,6 +46,11 @@ stepList =
   , StepDecoded
   ]
 
+visibleStepList hasCamera =
+  List.filter
+    (\id -> not (id == StepQrCamera && hasCamera == False))
+    stepList
+
 type alias Sidechannel m =
   { m
   | fileCode : PortData String
@@ -69,7 +73,7 @@ view model =
     , Font.color foreground
     , Background.color background
     ] <|
-      stepsArea model stepList
+      stepsArea model (visibleStepList model.hasCamera)
 
 --stepsArea : Model -> List StepId -> Element Msg
 stepsArea model id =

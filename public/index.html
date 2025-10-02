@@ -47,32 +47,36 @@ if (app.ports.formatJson) {
 // ------------------- QrScanner --------------------
 import QrScanner from './qr-scanner.min.js'
 if (app.ports.qrCommand) {
-  var scanner;
-  try {
-    var videoElement = document.getElementById('qrwebcam')
-    scanner = new QrScanner(videoElement,
-      function(result) {
-        scanner.stop()
-        app.ports.qrEvent.send({
-          kind: 'cameraScanned',
-          result: result,
-        })
-      },
-      {
-        returnDetailedScanResult: true,
-        /*onDecodeError: function(error) {
-          // console.log(error)
-          app.ports.qrEvent.send({
-            kind: 'cameraError',
-            error: error,
+  var cameraScanner
+
+  function createCameraScanner() {
+    try {
+      var videoElement = document.getElementById('qrwebcam')
+      if (videoElement) {
+        return new QrScanner(videoElement,
+          function(result) {
+            app.ports.qrEvent.send({
+              kind: 'cameraScanned',
+              result: result,
+            })
+          },
+          {
+            returnDetailedScanResult: true,
+            /*onDecodeError: function(error) {
+              // console.log(error)
+              app.ports.qrEvent.send({
+                kind: 'cameraError',
+                error: error,
+              })
+            },*/
           })
-        },*/
+      }
+    } catch (e) {
+      app.ports.qrEvent.send({
+        kind: 'cameraError',
+        error: e,
       })
-  } catch (e) {
-    app.ports.qrEvent.send({
-      kind: 'cameraError',
-      error: e,
-    })
+    }
   }
 
   function scanImage(file) {
@@ -90,12 +94,12 @@ if (app.ports.qrCommand) {
             error: error,
           })
         })
-  } catch (e) {
-    app.ports.qrEvent.send({
-      kind: 'fileError',
-      error: e,
-    })
-  }
+    } catch (e) {
+      app.ports.qrEvent.send({
+        kind: 'fileError',
+        error: e,
+      })
+    }
   }
 
   function command(message) {
@@ -105,15 +109,22 @@ if (app.ports.qrCommand) {
           scanImage(message.file)
           break
         case "startCamera":
-          scanner.start().catch(function(error) {
-            app.ports.qrEvent.send({
-              kind: 'cameraError',
-              error: error,
+          if (!cameraScanner) {
+            cameraScanner = createCameraScanner()
+          }
+          if (cameraScanner) {
+            cameraScanner.start().catch(function(error) {
+              app.ports.qrEvent.send({
+                kind: 'cameraError',
+                error: error,
+              })
             })
-          })
+          }
           break
         case "stopCamera":
-          scanner.stop()
+          if (cameraScanner) {
+            cameraScanner.stop()
+          }
           break
         default:
           console.log('unknown command', message)
@@ -128,6 +139,13 @@ if (app.ports.qrCommand) {
   }
 
   app.ports.qrCommand.subscribe(command)
+
+  QrScanner.hasCamera().then(function(hasCamera) {
+    app.ports.qrEvent.send({
+      kind: 'hasCamera',
+      hasCamera: hasCamera,
+    })
+  })
 }
 
 </script>

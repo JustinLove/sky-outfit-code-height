@@ -1,4 +1,3 @@
-- hasCamera
 - presentation of qr vs paste
 - nice UI
 - intro message

@@ -11,13 +11,14 @@ import Json.Decode as Decode
 
 type Msg
   = UI View.Msg
-  | QrScanned QrScanner.Event
+  | Qr QrScanner.Event
   | BlockDecompressed Lz4.Block
   | JsonFormatted FormatJson.Formatted
 
 type alias Model =
   { fileCode : PortData String
   , cameraCode : PortData String
+  , hasCamera : Bool
   , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
@@ -36,6 +37,7 @@ init : String -> (Model, Cmd Msg)
 init search =
   { fileCode = NotRequested
   , cameraCode = NotRequested
+  , hasCamera = False
   , codeEntry = search
   , output = NotRequested
   , prettyOutput = NotRequested
@@ -66,13 +68,14 @@ update msg model =
         |> processSteps
     UI (View.SelectStep step) ->
       changeStep step model
-    QrScanned code ->
+    Qr code ->
       { model
       | fileCode = case code of
         QrScanner.FileScanned text -> Data text
         QrScanner.FileError message -> Failed message
         QrScanner.CameraScanned text -> NotRequested
         QrScanner.CameraError message -> model.fileCode
+        QrScanner.HasCamera flag -> model.fileCode
         QrScanner.Error message -> Failed message
         QrScanner.CommunicationError err -> Failed "Error decoding error"
       , cameraCode = case code of
@@ -80,8 +83,16 @@ update msg model =
         QrScanner.FileError message -> model.cameraCode
         QrScanner.CameraScanned text -> Data text
         QrScanner.CameraError message -> Failed message
+        QrScanner.HasCamera flag ->
+          if flag then
+            model.cameraCode
+          else
+            NotAvailable
         QrScanner.Error message -> Failed message
         QrScanner.CommunicationError err -> Failed "Error decoding error"
+      , hasCamera = case code of
+        QrScanner.HasCamera flag -> flag
+        _ -> model.hasCamera
       }
         |> processSteps
     BlockDecompressed block ->
@@ -204,7 +215,7 @@ pickCurrentView model =
     View.StepCodeEntry
   else if isStepSuccess model.cameraCode then
     View.StepCodeEntry
-  else if isStepFailed model.cameraCode then
+  else if model.hasCamera && isStepFailed model.cameraCode then
     View.StepQrCamera
   else
     View.StepQrFile
@@ -256,7 +267,7 @@ heightDecoder =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ QrScanner.event QrScanned
+    [ QrScanner.event Qr
     , Lz4.blockDecompressed BlockDecompressed
     , FormatJson.formatted JsonFormatted
     ]
