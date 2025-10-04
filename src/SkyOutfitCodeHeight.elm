@@ -42,7 +42,7 @@ init search =
   , output = NotRequested
   , prettyOutput = NotAvailable
   , outfitHeight = NotAvailable
-  , currentStep = View.StepFindingYourCode
+  , currentStep = View.StepNotice
   }
     |> processSteps
 
@@ -220,7 +220,7 @@ pickCurrentView model =
   else if isStepFailed model.fileCode then
     View.StepQrFile
   else
-    View.StepFindingYourCode
+    View.StepNotice
 
 isStepComplete : PortData a -> Bool
 isStepComplete data =

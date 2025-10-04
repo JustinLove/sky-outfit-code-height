@@ -32,7 +32,8 @@ type alias OutfitHeight =
   }
 
 type StepId
-  = StepFindingYourCode
+  = StepNotice
+  | StepFindingYourCode
   | StepQrFile
   | StepQrCamera
   | StepCodeEntry
@@ -41,7 +42,8 @@ type StepId
   | StepDecoded
 
 stepList =
-  [ StepFindingYourCode
+  [ StepNotice
+  , StepFindingYourCode
   , StepQrFile
   , StepQrCamera
   , StepCodeEntry
@@ -102,6 +104,7 @@ possiblyHidden visible content =
 stepTitle : StepId -> String
 stepTitle id =
   case id of
+    StepNotice -> "Notice"
     StepFindingYourCode -> "Finding Your Code"
     StepQrFile -> "Scan QR Image File"
     StepQrCamera -> "Scan QR Via Camera"
@@ -113,6 +116,7 @@ stepTitle id =
 stepEnabled : StepId -> Sidechannel m -> Bool
 stepEnabled id sidechannel =
   case id of
+    StepNotice -> True
     StepFindingYourCode -> True
     StepQrFile -> dataEnabled sidechannel.fileCode
     StepQrCamera -> dataEnabled sidechannel.cameraCode
@@ -142,6 +146,7 @@ stepBody id sidechannel =
       }
     ]
     <| case id of
+      StepNotice -> noticeArea
       StepFindingYourCode -> findingYourCodeArea
       StepQrFile -> qrFileBody sidechannel
       StepQrCamera -> qrCameraBody sidechannel
@@ -174,9 +179,26 @@ decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
 
+noticeArea : Element Msg
+noticeArea =
+  column [ width fill ]
+    [ column
+      [ width (fill |> maximum 900)
+      , centerX
+      , spacing 20
+      ]
+      [ el [ centerX, Font.size (scaled 3) ] <|
+        text "For Information Only"
+      , paragraph [] [ text "Outfit codes reveal exact height and scale values, which I know is a topic of much interest to many skykids." ]
+      , paragraph [] [ text "However, please remember that while this offers more percision, changing size is no easier than it was before. If anything, this may reveal how big an effect each skykid's scale has on possible heights. Please don't go chasing that last fraction." ]
+      , el [ centerX, Font.size (scaled 3) ] <|
+        text "It is okay be different"
+      ]
+    ]
+
 findingYourCodeArea : Element Msg
 findingYourCodeArea =
-  column [ width fill ]
+  column [ width fill, spacing 20 ]
     [ wrappedRow [ padding 2, spacing 10, centerX ]
       [ instructionImage
         { src = "account.png"
@@ -190,6 +212,14 @@ findingYourCodeArea =
         { src = "outfitqrcode.png"
         , description = "In Account Info, press the Outfit QR Code button."
         }
+      ]
+    , column
+      [ width (fill |> maximum 900)
+      , centerX
+      , spacing 20
+      ]
+      [ paragraph [] [ text "Outfit codes contain only a visual description of your character. They do NOT contain your sky-id or other identifable information" ]
+      , paragraph [] [ text "All data is processed in your browser. It is not sent to any server." ]
       ]
     ]
 

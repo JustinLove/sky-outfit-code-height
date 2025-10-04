@@ -1,5 +1,3 @@
-- intro message
-- alternate input pointers?
 - readme
 - icons?
 - footer
