@@ -23,6 +23,7 @@ type alias Model =
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
+  , baseHeightEntry : String
   , currentStep : View.StepId
   }
 
@@ -42,6 +43,7 @@ init search =
   , output = NotRequested
   , prettyOutput = NotAvailable
   , outfitHeight = NotAvailable
+  , baseHeightEntry = "11"
   , currentStep = View.StepNotice
   }
     |> processSteps
@@ -70,6 +72,8 @@ update msg model =
         |> processSteps
     UI (View.SelectStep step) ->
       changeStep step model
+    UI (View.BaseHeight text) ->
+      ( { model | baseHeightEntry = text }, Cmd.none )
     Qr code ->
       { model
       | fileCode = case code of

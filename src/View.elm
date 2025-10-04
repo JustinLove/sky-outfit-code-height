@@ -27,6 +27,7 @@ type Msg
   | CodeText String
   | Decode
   | SelectStep StepId
+  | BaseHeight String
 
 type alias OutfitHeight =
   { height : Float
@@ -67,6 +68,7 @@ type alias Sidechannel m =
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
+  , baseHeightEntry : String
   }
 
 document tagger model =
@@ -191,7 +193,7 @@ prettyBody sidechannel =
 
 decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
-  displayPortData heightArea sidechannel.outfitHeight
+  displayPortData (heightArea sidechannel.baseHeightEntry) sidechannel.outfitHeight
 
 noticeArea : Element msg
 noticeArea =
@@ -391,15 +393,65 @@ prettyOutputArea output =
     ]
       <| text output
 
-heightArea : OutfitHeight -> Element msg
-heightArea outfitHeight =
+heightArea : String -> OutfitHeight -> Element Msg
+heightArea baseHeightEntry outfitHeight =
   column
     [ width fill
     , padding 10
-    , spacing 10
+    , spacing 40
     ]
-    [ valueRow "Height" outfitHeight.height
-    , valueRow "Scale" outfitHeight.scale
+    [ column
+      [ width fill
+      , spacing 10
+      , Font.size (scaled 4)
+      ]
+      [ valueRow "Height" outfitHeight.height
+      , valueRow "Scale" outfitHeight.scale
+      ]
+    , column
+      [ width fill
+      , spacing 20
+      ]
+      [ el [ centerX, Font.size (scaled 3) ] <|
+        text "Speculative Height Calculation"
+      , el [ centerX ] <|
+        paragraph [] [ text "I'm making this up based on prior work on skyid height. But it seems to come out about right, at least for me." ]
+      , el [ centerX] <| Input.text
+        [ width (px (3 * (scaled 2)))
+        , Background.color input
+        ]
+        { onChange = BaseHeight
+        , text = baseHeightEntry
+        , placeholder = Nothing
+        , label = Input.labelRight [] <| text "Speculative Base Height"
+        }
+      , el [ centerX ] <| paragraph []
+        [ text "("
+        , text baseHeightEntry
+        , text " + "
+        , text <| String.fromFloat outfitHeight.height
+        , text ") x (1 + "
+        , text <| String.fromFloat outfitHeight.scale
+        , text ")"
+        ]
+      , el [ centerX ] <| paragraph []
+        [ text "("
+        , baseHeightEntry
+          |> String.toFloat
+          |> Maybe.map (\baseHeight -> String.fromFloat (baseHeight + outfitHeight.height))
+          |> Maybe.withDefault "--"
+          |> text
+        , text ") x ("
+        , text <| String.fromFloat (1 + outfitHeight.scale)
+        , text ")"
+        ]
+      , baseHeightEntry
+          |> String.toFloat
+          |> Maybe.map (\baseHeight -> String.fromFloat ((outfitHeight.height + baseHeight) * (1 + outfitHeight.scale)))
+          |> Maybe.withDefault "--"
+          |> text
+          |> el [ centerX, Font.size (scaled 3) ]
+      ]
     ]
 
 valueRow : String -> Float -> Element msg
