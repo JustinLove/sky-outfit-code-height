@@ -40,8 +40,8 @@ init search =
   , hasCamera = False
   , codeEntry = search
   , output = NotRequested
-  , prettyOutput = NotRequested
-  , outfitHeight = NotRequested
+  , prettyOutput = NotAvailable
+  , outfitHeight = NotAvailable
   , currentStep = View.StepQrFile
   }
     |> processSteps
@@ -64,6 +64,8 @@ update msg model =
     UI (View.Decode) ->
       { model
       | output = Loading
+      , fileCode = NotRequested
+      , cameraCode = NotRequested
       }
         |> processSteps
     UI (View.SelectStep step) ->
@@ -184,12 +186,10 @@ processQrCode codeText =
 
 processDecode : String -> (PortData String, Cmd msg)
 processDecode codeEntry =
-  ( Loading
-  , if String.isEmpty codeEntry then
-      Cmd.none
-    else
-      Lz4.decompressBlock (codeEntry |> removeUrl)
-  )
+  if String.isEmpty codeEntry then
+    ( NotAvailable, Cmd.none )
+  else
+    ( Loading, Lz4.decompressBlock (codeEntry |> removeUrl) )
 
 processFormat : String -> (PortData String, Cmd msg)
 processFormat text =

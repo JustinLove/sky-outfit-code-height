@@ -83,7 +83,7 @@ stepsArea model id =
 --stepArea : Model -> Step Msg -> Element Msg
 stepArea model id =
   column [ width fill ]
-    [ stepHeader "ico" (stepTitle id) SelectStep id model.currentStep
+    [ stepHeader "ico" (stepTitle id) SelectStep id model.currentStep (stepEnabled id model)
     , possiblyHidden (id == model.currentStep)
       <| stepBody id model
     ]
@@ -97,12 +97,31 @@ possiblyHidden visible content =
 stepTitle : StepId -> String
 stepTitle id =
   case id of
-    StepQrFile -> "Upload QR Image"
+    StepQrFile -> "Scan QR Image File"
     StepQrCamera -> "Scan QR Via Camera"
     StepCodeEntry -> "Paste Outfit Code Text"
     StepRaw -> "Raw Decoded Value"
     StepPretty -> "Formatted JSON"
     StepDecoded -> "Height"
+
+stepEnabled : StepId -> Sidechannel m -> Bool
+stepEnabled id sidechannel =
+  case id of
+    StepQrFile -> dataEnabled sidechannel.fileCode
+    StepQrCamera -> dataEnabled sidechannel.cameraCode
+    StepCodeEntry -> True
+    StepRaw -> dataEnabled sidechannel.output
+    StepPretty -> dataEnabled sidechannel.prettyOutput
+    StepDecoded -> dataEnabled sidechannel.outfitHeight
+
+dataEnabled : PortData a -> Bool
+dataEnabled portData =
+  case portData of
+    NotRequested -> True
+    NotAvailable -> False
+    Loading -> True
+    Data _ -> True
+    Failed _ -> True
 
 stepBody : StepId -> Sidechannel m -> Element Msg
 stepBody id sidechannel =
@@ -261,13 +280,14 @@ valueRow label value =
       (el [ alignLeft ] (text (value |> String.fromFloat)))
     ]
 
-stepHeader : String -> String -> (mode -> Msg) -> mode -> mode -> Element Msg
-stepHeader ico name tagger mode current =
+stepHeader : String -> String -> (mode -> Msg) -> mode -> mode -> Bool -> Element Msg
+stepHeader ico name tagger mode current enabled =
   Input.button [ width fill ]
     { onPress = Just (tagger mode)
     , label = 
       el
         [ width fill
+        , Font.color (if enabled || mode == current then foreground else deemphasis)
         , Background.color (if mode == current then highlight else control)
         , paddingXY 10 5
         ] <|
@@ -299,5 +319,6 @@ background = rgb255 7 13 89
 highlight = rgb255 88 147 212
 control = rgb255 31 60 136
 input = rgb255 0 0 0
+deemphasis = rgb255 88 147 212
 --}
 
