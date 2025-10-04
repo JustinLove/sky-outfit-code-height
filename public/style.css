@@ -12,5 +12,6 @@ body {
 }
 
 #qrwebcam {
-  width: 100%;
+  width: 50vw;
+  max-width: 100vh;
 }

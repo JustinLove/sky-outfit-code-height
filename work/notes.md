@@ -1,4 +1,7 @@
-- presentation of qr vs paste
-- nice UI
 - intro message
-- camera notices
+- how to get outfit qr code
+- alternate input pointers?
+- readme
+- icons?
+- footer
+- visual display?

@@ -12,6 +12,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
+import Element.Region as Region
 import Json.Decode
 import Html exposing (Html)
 import Html.Attributes
@@ -71,6 +72,7 @@ view model =
   layout
     [ width fill
     , Font.color foreground
+    , Font.size (scaled 2)
     , Background.color background
     ] <|
       stepsArea model (visibleStepList model.hasCamera)
@@ -125,13 +127,22 @@ dataEnabled portData =
 
 stepBody : StepId -> Sidechannel m -> Element Msg
 stepBody id sidechannel =
-  case id of
-    StepQrFile -> qrFileBody sidechannel
-    StepQrCamera -> qrCameraBody sidechannel
-    StepCodeEntry -> inputBody sidechannel
-    StepRaw -> rawBody sidechannel
-    StepPretty -> prettyBody sidechannel
-    StepDecoded -> decodedBody sidechannel
+  el
+    [ width fill
+    , paddingEach
+      { top = 20
+      , right = 10
+      , bottom = 10
+      , left = 10
+      }
+    ]
+    <| case id of
+      StepQrFile -> qrFileBody sidechannel
+      StepQrCamera -> qrCameraBody sidechannel
+      StepCodeEntry -> inputBody sidechannel
+      StepRaw -> rawBody sidechannel
+      StepPretty -> prettyBody sidechannel
+      StepDecoded -> decodedBody sidechannel
 
 qrFileBody : Sidechannel m -> Element Msg
 qrFileBody sidechannel =
@@ -160,7 +171,7 @@ decodedBody sidechannel =
 qrFileArea : PortData String -> Element Msg
 qrFileArea qrCode =
   column [ padding 2, spacing 10, width fill ]
-    [ html qrCodeButtonHtml
+    [ el [ centerX ] <| html qrCodeButtonHtml
     , displayPortError qrCode
     ]
 
@@ -175,9 +186,13 @@ qrCodeButtonHtml =
 qrCameraArea : PortData String -> Element Msg
 qrCameraArea qrCode =
   column [ padding 2, spacing 10, width fill ]
-    [ html <| Html.video
-      [ Html.Attributes.id "qrwebcam"
-      ] []
+    [ el
+      [ width (shrink |> minimum 200)
+      , centerX
+      ]
+        <| html <| Html.video
+          [ Html.Attributes.id "qrwebcam"
+          ] []
     , displayPortError qrCode
     ]
 
@@ -196,12 +211,18 @@ inputArea codeEntry =
       { onChange = CodeText
       , text = codeEntry
       , placeholder = Nothing
-      , label = Input.labelAbove [] (text "Outfit code text")
+      , label = Input.labelAbove [] <| text "Outfit code text"
       , spellcheck = False
       }
     , Input.button [ alignRight ]
       { onPress = Just Decode
-      , label = text "Decode"
+      , label =
+        el
+          [ Font.color foreground
+          , Font.size (scaled 2)
+          , Background.color control
+          , paddingXY 10 5
+          ] <| text "Decode"
       }
     ]
 
@@ -209,15 +230,15 @@ displayPortData : (a -> Element msg) -> PortData a -> Element msg
 displayPortData withData portData =
   case portData of
     NotRequested ->
-      text "Not Requested"
+      twoPartMessage "Not Requested" "This may be a bug"
     NotAvailable ->
-      text "Not Available"
+      twoPartMessage "No Data Available" "This proabably means you need to input something in a step above"
     Loading ->
-      text "loading"
+      el [ centerX, centerY ] <| text "Loading"
     Data data ->
       withData data
     Failed error ->
-      showError error
+      twoPartMessage "Error" error
 
 displayPortError : PortData a -> Element msg
 displayPortError portData =
@@ -227,18 +248,23 @@ displayPortError portData =
     NotAvailable ->
       none
     Loading ->
-      text "loading"
+      el [ centerX, centerY ] <| text "Loading"
     Data data ->
       none
     Failed error ->
-      showError error
+      twoPartMessage "Error" error
 
-showError : String -> Element msg
-showError body =
-  paragraph
-    [ class "line-break-anywhere"
+twoPartMessage : String -> String -> Element msg
+twoPartMessage header body =
+  column [ centerX, centerY ]
+    [ el [ centerX, Font.size (scaled 2)] <|
+      text header
+    , el [ centerX, Font.size (scaled 1)] <|
+      paragraph
+        [ class "line-break-anywhere"
+        ]
+        [ text body ]
     ]
-    [ text body ]
 
 rawOutputArea : String -> Element msg
 rawOutputArea output =
@@ -288,6 +314,8 @@ stepHeader ico name tagger mode current enabled =
       el
         [ width fill
         , Font.color (if enabled || mode == current then foreground else deemphasis)
+        , Font.size (scaled 3)
+        , Region.heading 2
         , Background.color (if mode == current then highlight else control)
         , paddingXY 10 5
         ] <|
@@ -322,3 +350,4 @@ input = rgb255 0 0 0
 deemphasis = rgb255 88 147 212
 --}
 
+scaled = modular 16 1.25 >> round
