@@ -10,6 +10,7 @@ import PortData exposing (PortData(..))
 
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
@@ -31,7 +32,8 @@ type alias OutfitHeight =
   }
 
 type StepId
-  = StepQrFile
+  = StepFindingYourCode
+  | StepQrFile
   | StepQrCamera
   | StepCodeEntry
   | StepRaw
@@ -39,7 +41,8 @@ type StepId
   | StepDecoded
 
 stepList =
-  [ StepQrFile
+  [ StepFindingYourCode
+  , StepQrFile
   , StepQrCamera
   , StepCodeEntry
   , StepRaw
@@ -99,6 +102,7 @@ possiblyHidden visible content =
 stepTitle : StepId -> String
 stepTitle id =
   case id of
+    StepFindingYourCode -> "Finding Your Code"
     StepQrFile -> "Scan QR Image File"
     StepQrCamera -> "Scan QR Via Camera"
     StepCodeEntry -> "Paste Outfit Code Text"
@@ -109,6 +113,7 @@ stepTitle id =
 stepEnabled : StepId -> Sidechannel m -> Bool
 stepEnabled id sidechannel =
   case id of
+    StepFindingYourCode -> True
     StepQrFile -> dataEnabled sidechannel.fileCode
     StepQrCamera -> dataEnabled sidechannel.cameraCode
     StepCodeEntry -> True
@@ -137,6 +142,7 @@ stepBody id sidechannel =
       }
     ]
     <| case id of
+      StepFindingYourCode -> findingYourCodeArea
       StepQrFile -> qrFileBody sidechannel
       StepQrCamera -> qrCameraBody sidechannel
       StepCodeEntry -> inputBody sidechannel
@@ -167,6 +173,32 @@ prettyBody sidechannel =
 decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
+
+findingYourCodeArea : Element Msg
+findingYourCodeArea =
+  column [ width fill ]
+    [ wrappedRow [ padding 2, spacing 10, centerX ]
+      [ instructionImage
+        { src = "account.png"
+        , description = "Go to game settings and press the Account button."
+        }
+      , instructionImage
+        { src = "accountinfo.png"
+        , description = "In Account, press the Account Info button."
+        }
+      , instructionImage
+        { src = "outfitqrcode.png"
+        , description = "In Account Info, press the Outfit QR Code button."
+        }
+      ]
+    ]
+
+instructionImage desc =
+  image
+    [ Border.width 10
+    , Border.rounded 10
+    , Border.color control
+    ] desc
 
 qrFileArea : PortData String -> Element Msg
 qrFileArea qrCode =

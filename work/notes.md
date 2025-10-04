@@ -1,5 +1,4 @@
 - intro message
-- how to get outfit qr code
 - alternate input pointers?
 - readme
 - icons?
