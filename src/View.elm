@@ -18,6 +18,8 @@ import Json.Decode
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Svg exposing (svg, use)
+import Svg.Attributes exposing (xlinkHref)
 
 type Msg
   = None
@@ -90,7 +92,7 @@ stepsArea model id =
 --stepArea : Model -> Step Msg -> Element Msg
 stepArea model id =
   column [ width fill ]
-    [ stepHeader "ico" (stepTitle id) SelectStep id model.currentStep (stepEnabled id model)
+    [ stepHeader (stepIcon id) (stepTitle id) SelectStep id model.currentStep (stepEnabled id model)
     , possiblyHidden (id == model.currentStep)
       <| stepBody id model
     ]
@@ -100,6 +102,18 @@ possiblyHidden visible content =
   el
     (if visible then [ width fill ] else [ class "hidden" ])
     content
+
+stepIcon : StepId -> String
+stepIcon id =
+  case id of
+    StepNotice -> "info"
+    StepFindingYourCode -> "search"
+    StepQrFile -> "file-picture"
+    StepQrCamera -> "qrcode"
+    StepCodeEntry -> "paste"
+    StepRaw -> "embed"
+    StepPretty -> "list2"
+    StepDecoded -> "text-height"
 
 stepTitle : StepId -> String
 stepTitle id =
@@ -179,7 +193,7 @@ decodedBody : Sidechannel m -> Element Msg
 decodedBody sidechannel =
   displayPortData heightArea sidechannel.outfitHeight
 
-noticeArea : Element Msg
+noticeArea : Element msg
 noticeArea =
   column [ width fill ]
     [ column
@@ -189,10 +203,20 @@ noticeArea =
       ]
       [ el [ centerX, Font.size (scaled 3) ] <|
         text "For Information Only"
-      , paragraph [] [ text "Outfit codes reveal exact height and scale values, which I know is a topic of much interest to many skykids." ]
+      , paragraph []
+        [ text "Outfit codes reveal exact height and scale values of players in "
+        , link linkStyles
+          { url = "https://www.thatskygame.com/"
+          , label = text "Sky: Children of the Light"
+          }
+        , text ", which I know is a topic of much interest to many skykids."
+        ]
       , paragraph [] [ text "However, please remember that while this offers more percision, changing size is no easier than it was before. If anything, this may reveal how big an effect each skykid's scale has on possible heights. Please don't go chasing that last fraction." ]
       , el [ centerX, Font.size (scaled 3) ] <|
         text "It is okay be different"
+      , el [ centerX, Font.size (scaled 0) ] <|
+        paragraph [ ] [ text "This app is not endorsed, affiliated with, or approved by That Game Company." ]
+      , displayFooter
       ]
     ]
 
@@ -241,10 +265,7 @@ qrNotice =
       ]
       [ paragraph []
         [ text "The outfit QR codes are exteremely dense and may be hard to read. Using a high-resolution display is recommended. If you can't get a code to scan here, you can try using any other QR-scanning program and "
-        , Input.button
-          [ Font.underline
-          , mouseOver [ Font.color highlight ]
-          ]
+        , Input.button linkStyles
           { onPress = Just (SelectStep StepCodeEntry)
           , label = text "pasting the text below"
           }
@@ -409,8 +430,8 @@ stepHeader ico name tagger mode current enabled =
         , paddingXY 10 5
         ] <|
         row [ centerX, spacing 6 ]
-          --[ el [ Font.size 16 ] <| icon ico
-          [ text name
+          [ el [ Font.size 16 ] <| icon ico
+          , text name
           ]
     }
 
@@ -420,9 +441,37 @@ targetFiles tagger =
     |> Json.Decode.map tagger
     --|> Json.Decode.map (Debug.log "files")
 
+displayFooter : Element msg
+displayFooter =
+  wrappedRow
+    [ Region.footer
+    , centerX
+    , spacing 20
+    , Font.size (scaled 0)
+    ]
+    [ link []
+      { url = "https://github.com/JustinLove/sky-outfit-code-height"
+      , label = row [] [ icon "github", text "sky-outfit-code-height" ]
+      }
+    , link []
+      { url = "https://twitter.com/wondible"
+      , label = row [] [ icon "twitter", text "@wondible" ]
+      }
+    , link []
+      { url = "https://twitch.tv/wondible"
+      , label = row [] [ icon "twitch", text "wondible" ]
+      }
+    ]
+
 class : String -> Element.Attribute msg
 class name =
   htmlAttribute (Html.Attributes.class name)
+
+icon : String -> Element msg
+icon name =
+  svg [ Svg.Attributes.class ("icon icon-"++name) ]
+    [ use [ xlinkHref ("symbol-defs.svg#icon-"++name) ] [] ]
+  |> html
 
 {-- https://colorhunt.co/palette/070d591f3c885893d4ceddef
 rgb255 7 13 89
@@ -438,5 +487,11 @@ control = rgb255 31 60 136
 input = rgb255 0 0 0
 deemphasis = rgb255 88 147 212
 --}
+
+
+linkStyles =
+  [ Font.underline
+  , mouseOver [ Font.color highlight ]
+  ]
 
 scaled = modular 16 1.25 >> round
