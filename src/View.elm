@@ -241,7 +241,10 @@ qrNotice =
       ]
       [ paragraph []
         [ text "The outfit QR codes are exteremely dense and may be hard to read. Using a high-resolution display is recommended. If you can't get a code to scan here, you can try using any other QR-scanning program and "
-        , Input.button [ Font.underline ]
+        , Input.button
+          [ Font.underline
+          , mouseOver [ Font.color highlight ]
+          ]
           { onPress = Just (SelectStep StepCodeEntry)
           , label = text "pasting the text below"
           }
@@ -305,6 +308,7 @@ inputArea codeEntry =
           [ Font.color foreground
           , Font.size (scaled 2)
           , Background.color control
+          , mouseOver [ Background.color highlight ]
           , paddingXY 10 5
           ] <| text "Decode"
       }
@@ -401,6 +405,7 @@ stepHeader ico name tagger mode current enabled =
         , Font.size (scaled 3)
         , Region.heading 2
         , Background.color (if mode == current then highlight else control)
+        , mouseOver (if enabled then [ Background.color highlight ] else [])
         , paddingXY 10 5
         ] <|
         row [ centerX, spacing 6 ]
