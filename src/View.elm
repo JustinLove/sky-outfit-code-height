@@ -77,7 +77,7 @@ view model =
 
 --stepsArea : Model -> List StepId -> Element Msg
 stepsArea model id =
-  column [ width fill ]
+  column [ width fill, spacing 10 ]
     (List.map (stepArea model) id)
 
 --stepArea : Model -> Step Msg -> Element Msg
@@ -268,7 +268,7 @@ stepHeader ico name tagger mode current =
     , label = 
       el
         [ width fill
-        , Background.color (if mode == current then highlight else background)
+        , Background.color (if mode == current then highlight else control)
         , paddingXY 10 5
         ] <|
         row [ centerX, spacing 6 ]
@@ -287,8 +287,17 @@ class : String -> Element.Attribute msg
 class name =
   htmlAttribute (Html.Attributes.class name)
 
-foreground = rgb 0.9 0.9 0.9
-background = rgb 0.1 0.1 0.1
-highlight = rgb 0.4 0.4 0.4
-input = rgb 0 0 0
+{-- https://colorhunt.co/palette/070d591f3c885893d4ceddef
+rgb255 7 13 89
+rgb255 31 60 136
+rgb255 88 147 212
+rgb255 206 221 239
+--}
+--
+foreground = rgb255 206 221 239
+background = rgb255 7 13 89
+highlight = rgb255 88 147 212
+control = rgb255 31 60 136
+input = rgb255 0 0 0
+--}
 
