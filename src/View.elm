@@ -230,11 +230,32 @@ instructionImage desc =
     , Border.color control
     ] desc
 
+qrNotice : Element Msg
+qrNotice =
+  column [ width fill ]
+    [ column
+      [ width (fill |> maximum 900)
+      , centerX
+      , spacing 20
+      , Font.size (scaled 0)
+      ]
+      [ paragraph []
+        [ text "The outfit QR codes are exteremely dense and may be hard to read. Using a high-resolution display is recommended. If you can't get a code to scan here, you can try using any other QR-scanning program and "
+        , Input.button [ Font.underline ]
+          { onPress = Just (SelectStep StepCodeEntry)
+          , label = text "pasting the text below"
+          }
+        , text "."
+        ]
+      ]
+    ]
+
 qrFileArea : PortData String -> Element Msg
 qrFileArea qrCode =
   column [ padding 2, spacing 10, width fill ]
     [ el [ centerX ] <| html qrCodeButtonHtml
     , displayPortError qrCode
+    , qrNotice
     ]
 
 qrCodeButtonHtml : Html.Html Msg
@@ -256,6 +277,7 @@ qrCameraArea qrCode =
           [ Html.Attributes.id "qrwebcam"
           ] []
     , displayPortError qrCode
+    , qrNotice
     ]
 
 inputArea : String -> Element Msg
