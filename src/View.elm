@@ -2,6 +2,7 @@ module View exposing
   ( Msg(..)
   , OutfitHeight
   , StepId(..)
+  , Model
   , view
   , document
   )
@@ -28,6 +29,8 @@ type Msg
   | Decode
   | SelectStep StepId
   | BaseHeight String
+  | Height String
+  | Scale String
 
 type alias OutfitHeight =
   { height : Float
@@ -60,15 +63,18 @@ visibleStepList hasCamera =
     (\id -> not (id == StepQrCamera && hasCamera == False))
     stepList
 
-type alias Sidechannel m =
-  { m
-  | fileCode : PortData String
+type alias Model =
+  { fileCode : PortData String
   , cameraCode : PortData String
+  , hasCamera : Bool
   , codeEntry : String
   , output : PortData String
   , prettyOutput : PortData String
   , outfitHeight : PortData OutfitHeight
   , baseHeightEntry : String
+  , heightEntry : String
+  , scaleEntry : String
+  , currentStep : StepId
   }
 
 document tagger model =
@@ -76,7 +82,7 @@ document tagger model =
   , body = [Html.map tagger (view model)]
   }
 
--- view : model -> Html Msg
+view : Model -> Html Msg
 view model =
   layout
     [ width fill
@@ -86,12 +92,12 @@ view model =
     ] <|
       stepsArea model (visibleStepList model.hasCamera)
 
---stepsArea : Model -> List StepId -> Element Msg
+stepsArea : Model -> List StepId -> Element Msg
 stepsArea model id =
   column [ width fill, spacing 10 ]
     (List.map (stepArea model) id)
 
---stepArea : Model -> Step Msg -> Element Msg
+stepArea : Model -> StepId -> Element Msg
 stepArea model id =
   column [ width fill ]
     [ stepHeader (stepIcon id) (stepTitle id) SelectStep id model.currentStep (stepEnabled id model)
@@ -129,17 +135,17 @@ stepTitle id =
     StepPretty -> "Formatted JSON"
     StepDecoded -> "Height"
 
-stepEnabled : StepId -> Sidechannel m -> Bool
-stepEnabled id sidechannel =
+stepEnabled : StepId -> Model -> Bool
+stepEnabled id model =
   case id of
     StepNotice -> True
     StepFindingYourCode -> True
-    StepQrFile -> dataEnabled sidechannel.fileCode
-    StepQrCamera -> dataEnabled sidechannel.cameraCode
+    StepQrFile -> dataEnabled model.fileCode
+    StepQrCamera -> dataEnabled model.cameraCode
     StepCodeEntry -> True
-    StepRaw -> dataEnabled sidechannel.output
-    StepPretty -> dataEnabled sidechannel.prettyOutput
-    StepDecoded -> dataEnabled sidechannel.outfitHeight
+    StepRaw -> dataEnabled model.output
+    StepPretty -> dataEnabled model.prettyOutput
+    StepDecoded -> dataEnabled model.outfitHeight
 
 dataEnabled : PortData a -> Bool
 dataEnabled portData =
@@ -150,8 +156,8 @@ dataEnabled portData =
     Data _ -> True
     Failed _ -> True
 
-stepBody : StepId -> Sidechannel m -> Element Msg
-stepBody id sidechannel =
+stepBody : StepId -> Model -> Element Msg
+stepBody id model =
   el
     [ width fill
     , paddingEach
@@ -162,38 +168,22 @@ stepBody id sidechannel =
       }
     ]
     <| case id of
-      StepNotice -> noticeArea
-      StepFindingYourCode -> findingYourCodeArea
-      StepQrFile -> qrFileBody sidechannel
-      StepQrCamera -> qrCameraBody sidechannel
-      StepCodeEntry -> inputBody sidechannel
-      StepRaw -> rawBody sidechannel
-      StepPretty -> prettyBody sidechannel
-      StepDecoded -> decodedBody sidechannel
-
-qrFileBody : Sidechannel m -> Element Msg
-qrFileBody sidechannel =
-  qrFileArea sidechannel.fileCode
-
-qrCameraBody : Sidechannel m -> Element Msg
-qrCameraBody sidechannel =
-  qrCameraArea sidechannel.cameraCode
-
-inputBody : Sidechannel m -> Element Msg
-inputBody sidechannel =
-  inputArea sidechannel.codeEntry
-
-rawBody : Sidechannel m -> Element Msg
-rawBody sidechannel =
-  displayPortData rawOutputArea sidechannel.output
-
-prettyBody : Sidechannel m -> Element Msg
-prettyBody sidechannel =
-  displayPortData prettyOutputArea sidechannel.prettyOutput
-
-decodedBody : Sidechannel m -> Element Msg
-decodedBody sidechannel =
-  displayPortData (heightArea sidechannel.baseHeightEntry) sidechannel.outfitHeight
+      StepNotice ->
+        noticeArea
+      StepFindingYourCode ->
+        findingYourCodeArea
+      StepQrFile ->
+        qrFileArea model.fileCode
+      StepQrCamera ->
+        qrCameraArea model.cameraCode
+      StepCodeEntry ->
+        inputArea model.codeEntry
+      StepRaw ->
+        displayPortData rawOutputArea model.output
+      StepPretty ->
+        displayPortData prettyOutputArea model.prettyOutput
+      StepDecoded ->
+        displayPortData heightArea model.outfitHeight
 
 noticeArea : Element msg
 noticeArea =
@@ -204,7 +194,7 @@ noticeArea =
       , spacing 20
       ]
       [ el [ centerX, Font.size (scaled 3) ] <|
-        text "For Information Only"
+        text "For Entertainment Only"
       , paragraph []
         [ text "Outfit codes reveal exact height and scale values of players in "
         , link linkStyles
@@ -213,11 +203,11 @@ noticeArea =
           }
         , text ", which I know is a topic of much interest to many skykids."
         ]
-      , paragraph [] [ text "However, please remember that while this offers more percision, changing size is no easier than it was before. If anything, this may reveal how big an effect each skykid's scale has on possible heights. Please don't go chasing that last fraction." ]
+      , paragraph [] [ text "However, please remember that while this offers more percision, changing size is no easier than it was before. Please don't go chasing that last fraction." ]
       , el [ centerX, Font.size (scaled 3) ] <|
         text "It is okay be different"
       , el [ centerX, Font.size (scaled 0) ] <|
-        paragraph [ ] [ text "This app is not endorsed, affiliated with, or approved by That Game Company." ]
+        paragraph [ ] [ text "This app is not affiliated with, approved, or endorsed by That Game Company." ]
       , displayFooter
       ]
     ]
@@ -393,8 +383,8 @@ prettyOutputArea output =
     ]
       <| text output
 
-heightArea : String -> OutfitHeight -> Element Msg
-heightArea baseHeightEntry outfitHeight =
+heightArea : OutfitHeight -> Element Msg
+heightArea outfitHeight =
   column
     [ width fill
     , padding 10
@@ -408,51 +398,89 @@ heightArea baseHeightEntry outfitHeight =
       [ valueRow "Height" outfitHeight.height
       , valueRow "Scale" outfitHeight.scale
       ]
-    , column
-      [ width fill
-      , spacing 20
-      ]
-      [ el [ centerX, Font.size (scaled 3) ] <|
-        text "Speculative Height Calculation"
-      , el [ centerX ] <|
-        paragraph [] [ text "I'm making this up based on prior work on skyid height. But it seems to come out about right, at least for me." ]
-      , el [ centerX] <| Input.text
-        [ width (px (3 * (scaled 2)))
+    ]
+
+-- this was based on some back calculation of my numbers from https://skykidheight.com/  and it's references
+-- but it doesn't match up with npc sizes, and one sample really isn't enough.
+calculationArea : String -> String -> String -> Element Msg
+calculationArea baseHeightEntry heightEntry scaleEntry =
+  column
+    [ width fill
+    , spacing 20
+    ]
+    [ el [ centerX, Font.size (scaled 3) ] <|
+      text "Speculative Height Calculation"
+    , el [ centerX ] <|
+      paragraph [] [ text "I'm making this up based on prior work on skyid height. But it seems to come out about right, at least for me." ]
+    , el [ centerX ] <| paragraph []
+      [ text "("
+      , Input.text
+        [ width (px (4 * (scaled 1)))
         , Background.color input
         ]
         { onChange = BaseHeight
         , text = baseHeightEntry
         , placeholder = Nothing
-        , label = Input.labelRight [] <| text "Speculative Base Height"
+        , label = Input.labelBelow [] <| text "Base"
         }
-      , el [ centerX ] <| paragraph []
-        [ text "("
-        , text baseHeightEntry
-        , text " + "
-        , text <| String.fromFloat outfitHeight.height
-        , text ") x (1 + "
-        , text <| String.fromFloat outfitHeight.scale
-        , text ")"
+      , text " + "
+      , Input.text
+        [ width (px (9 * (scaled 1)))
+        , Background.color input
         ]
-      , el [ centerX ] <| paragraph []
-        [ text "("
-        , baseHeightEntry
-          |> String.toFloat
-          |> Maybe.map (\baseHeight -> String.fromFloat (baseHeight + outfitHeight.height))
-          |> Maybe.withDefault "--"
-          |> text
-        , text ") x ("
-        , text <| String.fromFloat (1 + outfitHeight.scale)
-        , text ")"
+        { onChange = Height
+        , text = heightEntry
+        , placeholder = Nothing
+        , label = Input.labelBelow [] <| text "Height"
+        }
+      , text ") × (1 + "
+      , Input.text
+        [ width (px (9 * (scaled 1)))
+        , Background.color input
         ]
-      , baseHeightEntry
-          |> String.toFloat
-          |> Maybe.map (\baseHeight -> String.fromFloat ((outfitHeight.height + baseHeight) * (1 + outfitHeight.scale)))
-          |> Maybe.withDefault "--"
-          |> text
-          |> el [ centerX, Font.size (scaled 3) ]
+        { onChange = Scale
+        , text = scaleEntry
+        , placeholder = Nothing
+        , label = Input.labelBelow [] <| text "Scale"
+        }
+      , text ")"
       ]
+    , el [ centerX ] <| paragraph []
+      [ Maybe.map2
+          (\baseHeight height -> String.fromFloat (baseHeight + height))
+          (String.toFloat baseHeightEntry)
+          (String.toFloat heightEntry)
+        |> Maybe.withDefault "--"
+        |> text
+      , text " × "
+      , Maybe.map
+          (\scale -> String.fromFloat (1 + scale))
+          (String.toFloat scaleEntry)
+        |> Maybe.withDefault "--"
+        |> text
+      ]
+    , Maybe.map3
+          (\baseHeight height scale ->
+            ((height + baseHeight) * (1 + scale))
+              |> truncate
+              |> String.fromFloat
+          )
+          (String.toFloat baseHeightEntry)
+          (String.toFloat heightEntry)
+          (String.toFloat scaleEntry)
+        |> Maybe.withDefault "--"
+        |> text
+        |> el [ centerX, Font.size (scaled 3) ]
     ]
+
+precision = 10000000
+
+truncate : Float -> Float
+truncate x =
+  (x * precision)
+    |> round
+    |> toFloat
+    |> (\y -> y / precision)
 
 valueRow : String -> Float -> Element msg
 valueRow label value =

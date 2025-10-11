@@ -4,7 +4,7 @@ import FormatJson
 import Lz4
 import PortData exposing (PortData(..))
 import QrScanner
-import View exposing (OutfitHeight)
+import View exposing (OutfitHeight, Model)
 
 import Browser
 import Json.Decode as Decode
@@ -14,18 +14,6 @@ type Msg
   | Qr QrScanner.Event
   | BlockDecompressed Lz4.Block
   | JsonFormatted FormatJson.Formatted
-
-type alias Model =
-  { fileCode : PortData String
-  , cameraCode : PortData String
-  , hasCamera : Bool
-  , codeEntry : String
-  , output : PortData String
-  , prettyOutput : PortData String
-  , outfitHeight : PortData OutfitHeight
-  , baseHeightEntry : String
-  , currentStep : View.StepId
-  }
 
 main = Browser.document
   { init = init
@@ -43,7 +31,9 @@ init search =
   , output = NotRequested
   , prettyOutput = NotAvailable
   , outfitHeight = NotAvailable
-  , baseHeightEntry = "11"
+  , baseHeightEntry = "10"
+  , heightEntry = "0"
+  , scaleEntry = "0"
   , currentStep = View.StepNotice
   }
     |> processSteps
@@ -74,6 +64,10 @@ update msg model =
       changeStep step model
     UI (View.BaseHeight text) ->
       ( { model | baseHeightEntry = text }, Cmd.none )
+    UI (View.Height text) ->
+      ( { model | heightEntry = text }, Cmd.none )
+    UI (View.Scale text) ->
+      ( { model | scaleEntry = text }, Cmd.none )
     Qr code ->
       { model
       | fileCode = case code of
@@ -132,6 +126,12 @@ processSteps model =
       , output = newRaw
       , prettyOutput = newPretty
       , outfitHeight = newHeight
+      , heightEntry = newHeight
+        |> PortData.map (.height>>String.fromFloat)
+        |> PortData.withDefault model.heightEntry
+      , scaleEntry = newHeight
+        |> PortData.map (.scale>>String.fromFloat)
+        |> PortData.withDefault model.scaleEntry
       }
     newStep = pickCurrentView dataModel
     (newModel, stepCmd) = changeStep newStep dataModel
