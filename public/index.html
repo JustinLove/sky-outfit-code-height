@@ -20,7 +20,7 @@ var app = Elm.SkyOutfitCodeHeight.init({flags: search})
 if (app.ports.lz4DecompressBlock) {
   app.ports.lz4DecompressBlock.subscribe(function(base64text) {
     try {
-      var buffer = Uint8Array.fromBase64(base64text)
+      var buffer = Uint8Array.fromBase64(base64text, {alphabet: 'base64url'})
       var output = new Array(2000)
       var decodedCount = lz4.decompressBlock(buffer, output, 0, buffer.length, 0)
       var trunc = output.slice(0,decodedCount)

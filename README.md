@@ -4,7 +4,7 @@ The Outfit QR Codes in [Sky: Children of the Light](https://www.thatskygame.com/
 
 ## Technical Information
 
-A JSON document containing the character description is [LZ4 block compressed](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md) and base64 encoded. The base64 string is included in a url format, which is presented in a QR-code. (The QR codes are very dense and can be difficult to read, using a high resolution display may be helpful.)
+A JSON document containing the character description is [LZ4 block compressed](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md) and base64-uri encoded. The base64 string is included in a url format, which is presented in a QR-code. (The QR codes are very dense and can be difficult to read, using a high resolution display may be helpful.)
 
 ## Building
 
