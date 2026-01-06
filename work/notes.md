@@ -1,2 +1,3 @@
-- cite sources
+- formula
 - visual display?
+- cite sources

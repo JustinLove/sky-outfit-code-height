@@ -266,9 +266,20 @@ decodeHeight string =
 
 heightDecoder : Decode.Decoder OutfitHeight
 heightDecoder =
+  Decode.oneOf [ heightDecoder2, heightDecoder1 ]
+
+heightDecoder1 : Decode.Decoder OutfitHeight
+heightDecoder1 =
   Decode.map2 OutfitHeight
     (Decode.field "height" Decode.float)
     (Decode.field "scale" Decode.float)
+
+-- the format has invalid json - the h key is duplicated for hair? and height. But it seems height is last.
+heightDecoder2 : Decode.Decoder OutfitHeight
+heightDecoder2 =
+  Decode.map2 OutfitHeight
+    (Decode.field "h" Decode.float)
+    (Decode.field "s" Decode.float)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
