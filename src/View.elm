@@ -376,12 +376,22 @@ rawOutputArea output =
 
 prettyOutputArea : String -> Element msg
 prettyOutputArea output =
-  el
-    [ height (px 300)
-    , width fill
-    , scrollbarY
-    ]
-      <| text output
+  column [ width fill, spacing 20 ]
+  [ el
+      [ height (px 300)
+      , width fill
+      , scrollbarY
+      ]
+        <| text output
+  , column
+      [ width (fill |> maximum 900)
+      , centerX
+      , spacing 20
+      ]
+      [ el [ centerX, Font.size (scaled 0) ] <|
+        paragraph [ ] [ text "Codes contain duplicate 'h' keys. One of the values will not appear in the formatted output." ]
+      ]
+  ]
 
 heightArea : OutfitHeight -> Element Msg
 heightArea outfitHeight =
