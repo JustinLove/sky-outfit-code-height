@@ -208,8 +208,18 @@ noticeArea =
       , paragraph [] [ text "However, please remember that while this offers more percision, changing size is no easier than it was before. Please don't go chasing that last fraction." ]
       , el [ centerX, Font.size (scaled 3) ] <|
         text "It is okay be different"
-      , el [ centerX, Font.size (scaled 0) ] <|
-        paragraph [ ] [ text "This app is not affiliated with, approved, or endorsed by That Game Company." ]
+      , column [ width fill ]
+        [ el [ centerX, Font.size (scaled 0) ] <|
+          paragraph [ ] [ text "This app is not affiliated with, approved, or endorsed by That Game Company." ]
+        , el [ centerX, Font.size (scaled 0) ] <|
+          paragraph [ ]
+            [ text "In fact "
+            , link linkStyles
+              { url = "https://discord.com/channels/575762611111592007/585339436322259003/1415272574384083036"
+              , label = text "TGC does not recommend putting anything into strange websites."
+              }
+            ]
+        ]
       , displayFooter
       ]
     ]
