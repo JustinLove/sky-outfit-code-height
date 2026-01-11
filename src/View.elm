@@ -30,6 +30,7 @@ type Msg
   | SelectStep StepId
   | BaseHeight String
   | Height String
+  | BaseScale String
   | Scale String
 
 type alias OutfitHeight =
@@ -73,6 +74,7 @@ type alias Model =
   , outfitHeight : PortData OutfitHeight
   , baseHeightEntry : String
   , heightEntry : String
+  , baseScaleEntry : String
   , scaleEntry : String
   , currentStep : StepId
   }
@@ -183,7 +185,7 @@ stepBody id model =
       StepPretty ->
         displayPortData prettyOutputArea model.prettyOutput
       StepDecoded ->
-        displayPortData heightArea model.outfitHeight
+        displayPortData (heightArea model) model.outfitHeight
 
 noticeArea : Element msg
 noticeArea =
@@ -393,8 +395,8 @@ prettyOutputArea output =
       ]
   ]
 
-heightArea : OutfitHeight -> Element Msg
-heightArea outfitHeight =
+heightArea : Model -> OutfitHeight -> Element Msg
+heightArea model outfitHeight =
   column
     [ width fill
     , padding 10
@@ -408,20 +410,36 @@ heightArea outfitHeight =
       [ valueRow "Height" outfitHeight.height
       , valueRow "Scale" outfitHeight.scale
       ]
+    , calculationArea model
     ]
 
--- this was based on some back calculation of my numbers from https://skykidheight.com/  and it's references
--- but it doesn't match up with npc sizes, and one sample really isn't enough.
-calculationArea : String -> String -> String -> Element Msg
-calculationArea baseHeightEntry heightEntry scaleEntry =
+calculationArea : Model -> Element Msg
+calculationArea {baseHeightEntry, heightEntry, baseScaleEntry, scaleEntry} =
+  let
+    mcm = Maybe.map4
+          (\baseHeight height baseScale scale ->
+            ((height + baseHeight) * (baseScale + scale))
+              |> truncate
+          )
+          (String.toFloat baseHeightEntry)
+          (String.toFloat heightEntry)
+          (String.toFloat baseScaleEntry)
+          (String.toFloat scaleEntry)
+    mft = Maybe.map (\cm -> cm / 30.48) mcm
+    min = Maybe.map (\ft -> 12 * (ft - toFloat (floor ft))) mft
+  in
   column
     [ width fill
     , spacing 20
     ]
     [ el [ centerX, Font.size (scaled 3) ] <|
       text "Speculative Height Calculation"
-    , el [ centerX ] <|
-      paragraph [] [ text "I'm making this up based on prior work on skyid height. But it seems to come out about right, at least for me." ]
+    , column [ width fill ]
+      [ el [ centerX ] <|
+        paragraph [] [ text "I'm making this up based on prior work on skyid height. But it seems to come out about right, at least for me." ]
+      , el [ centerX ] <|
+        paragraph [] [ text "(You can play with the base values, but the real world units wont make sense any more)" ]
+      ]
     , el [ centerX ] <| paragraph []
       [ text "("
       , Input.text
@@ -443,7 +461,17 @@ calculationArea baseHeightEntry heightEntry scaleEntry =
         , placeholder = Nothing
         , label = Input.labelBelow [] <| text "Height"
         }
-      , text ") × (1 + "
+      , text ") × ("
+      , Input.text
+        [ width (px (4 * (scaled 1)))
+        , Background.color input
+        ]
+        { onChange = BaseScale
+        , text = baseScaleEntry
+        , placeholder = Nothing
+        , label = Input.labelBelow [] <| text "Base"
+        }
+      , text " + "
       , Input.text
         [ width (px (9 * (scaled 1)))
         , Background.color input
@@ -463,24 +491,34 @@ calculationArea baseHeightEntry heightEntry scaleEntry =
         |> Maybe.withDefault "--"
         |> text
       , text " × "
-      , Maybe.map
-          (\scale -> String.fromFloat (1 + scale))
+      , Maybe.map2
+          (\baseScale scale -> String.fromFloat (baseScale + scale))
+          (String.toFloat baseScaleEntry)
           (String.toFloat scaleEntry)
         |> Maybe.withDefault "--"
         |> text
       ]
-    , Maybe.map3
-          (\baseHeight height scale ->
-            ((height + baseHeight) * (1 + scale))
-              |> truncate
-              |> String.fromFloat
-          )
-          (String.toFloat baseHeightEntry)
-          (String.toFloat heightEntry)
-          (String.toFloat scaleEntry)
-        |> Maybe.withDefault "--"
-        |> text
-        |> el [ centerX, Font.size (scaled 3) ]
+    , el [ centerX, Font.size (scaled 4) ] <| paragraph []
+      [ mcm
+          |> Maybe.map String.fromFloat
+          |> Maybe.withDefault "--"
+          |> text
+      , text " cm"
+      ]
+    , el [ centerX, Font.size (scaled 4) ] <| paragraph []
+      [ mft
+          |> Maybe.map floor
+          |> Maybe.map String.fromInt
+          |> Maybe.withDefault "--"
+          |> text
+      , text "\""
+      , min
+          |> Maybe.map round
+          |> Maybe.map String.fromInt
+          |> Maybe.withDefault "--"
+          |> text
+      , text "'"
+      ]
     ]
 
 precision = 10000000

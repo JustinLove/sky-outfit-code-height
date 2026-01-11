@@ -33,6 +33,7 @@ init search =
   , outfitHeight = NotAvailable
   , baseHeightEntry = "10"
   , heightEntry = "0"
+  , baseScaleEntry = "10"
   , scaleEntry = "0"
   , currentStep = View.StepNotice
   }
@@ -66,6 +67,8 @@ update msg model =
       ( { model | baseHeightEntry = text }, Cmd.none )
     UI (View.Height text) ->
       ( { model | heightEntry = text }, Cmd.none )
+    UI (View.BaseScale text) ->
+      ( { model | baseScaleEntry = text }, Cmd.none )
     UI (View.Scale text) ->
       ( { model | scaleEntry = text }, Cmd.none )
     Qr code ->
